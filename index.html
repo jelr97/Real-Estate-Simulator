@@ -283,6 +283,7 @@
                 <div class="section-divider"></div>
                 <div class="card" id="prepayments-card">
                     <h2 data-i18n="prepayTitle">Prepayments</h2>
+                    <div id="prepay-recommendation" style="display:none;padding:10px 14px;border-radius:10px;font-size:0.82rem;margin-bottom:14px;line-height:1.5;"></div>
                     <div class="input-group">
                         <label data-i18n="prepayStrategy">Prepayment Strategy</label>
                         <div class="toggle-container">
@@ -456,7 +457,10 @@ const translations = {
         strategyReduceInstallment: "reduce installment",
         yearsLabel: "years",
         totalPrepaid: "Total prepaid",
-        ofDebt: "of debt"
+        ofDebt: "of debt",
+        prepayRecommendPositive: "▲ Prepayments will likely increase your IRR. Your mortgage rate ({mortgageRate}%) is higher than your base IRR ({baseIRR}%), so every dollar prepaid earns a higher effective return than your overall investment.",
+        prepayRecommendNegative: "▼ Prepayments will likely decrease your IRR. Your mortgage rate ({mortgageRate}%) is lower than your base IRR ({baseIRR}%), so prepaid dollars earn less than your overall investment. You still save on total interest paid, but you may get better returns deploying that cash elsewhere.",
+        prepayRecommendNeutral: "Your mortgage rate ({mortgageRate}%) is roughly equal to your base IRR ({baseIRR}%), so prepayments will have minimal impact on your percentage returns."
     },
     es: {
         title: "Simulador Inmobiliario",
@@ -535,7 +539,10 @@ const translations = {
         strategyReduceInstallment: "reducir cuota",
         yearsLabel: "años",
         totalPrepaid: "Total abonado",
-        ofDebt: "de la deuda"
+        ofDebt: "de la deuda",
+        prepayRecommendPositive: "▲ Los abonos probablemente aumentarán tu TIR. Tu tasa hipotecaria ({mortgageRate}%) es mayor que tu TIR base ({baseIRR}%), así que cada peso abonado genera un retorno efectivo mayor que tu inversión general.",
+        prepayRecommendNegative: "▼ Los abonos probablemente reducirán tu TIR. Tu tasa hipotecaria ({mortgageRate}%) es menor que tu TIR base ({baseIRR}%), así que los abonos rinden menos que tu inversión general. Aún ahorras en intereses totales, pero podrías obtener mejores retornos invirtiendo ese capital en otro lado.",
+        prepayRecommendNeutral: "Tu tasa hipotecaria ({mortgageRate}%) es similar a tu TIR base ({baseIRR}%), así que los abonos tendrán un impacto mínimo en tu retorno porcentual."
     }
 };
 
@@ -753,6 +760,33 @@ function doSimulation() {
     const base = runModel(pv, appR, mRent, mExp, totalM, {});
     showResults(base, '');
     baseChart = renderChart(base.yearlyData, 'chart', baseChart, '#0d9488');
+
+    // Prepayment recommendation
+    const recEl = document.getElementById('prepay-recommendation');
+    if (paymentMethod === 'leverage' && isFinite(base.annualIRR)) {
+        const mRateInput = parseFloat(document.getElementById('mortgage-rate').value) || 12;
+        const baseIRRpct = base.annualIRR * 100;
+        if (Math.abs(baseIRRpct) <= 100) {
+            const diff = mRateInput - baseIRRpct;
+            let key, bg, border, color;
+            if (diff > 0.5) {
+                key = 'prepayRecommendPositive'; bg = '#f0fdf4'; border = '#86efac'; color = '#166534';
+            } else if (diff < -0.5) {
+                key = 'prepayRecommendNegative'; bg = '#fef2f2'; border = '#fca5a5'; color = '#991b1b';
+            } else {
+                key = 'prepayRecommendNeutral'; bg = '#fffbeb'; border = '#fcd34d'; color = '#92400e';
+            }
+            recEl.style.display = 'block';
+            recEl.style.background = bg;
+            recEl.style.border = '1px solid ' + border;
+            recEl.style.color = color;
+            recEl.textContent = t[key].replace('{mortgageRate}', mRateInput.toFixed(1)).replace('{baseIRR}', baseIRRpct.toFixed(1));
+        } else {
+            recEl.style.display = 'none';
+        }
+    } else {
+        recEl.style.display = 'none';
+    }
 
     // Prepayment simulation
     const ppMap = getPrepayMap();
