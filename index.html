@@ -225,6 +225,10 @@
                         <label data-i18n="mortgageTerm">Mortgage Term (years)</label>
                         <input type="number" id="mortgage-term" placeholder="e.g., 15" value="15" min="1" max="30" step="1">
                     </div>
+                    <div class="net-rental-box" style="border-color:#dc2626;">
+                        <div class="net-rental-label" style="color:#dc2626;" data-i18n="monthlyMortgage">Monthly Mortgage Payment</div>
+                        <div class="net-rental-value" style="color:#dc2626;" id="monthly-mortgage-value">--</div>
+                    </div>
                     <div class="input-group">
                         <label data-i18n="rentalStart">When does rental income start?</label>
                         <select id="rental-start">
@@ -399,6 +403,7 @@ const translations = {
         mortgageRate: "Mortgage Interest Rate (% annual)",
         mortgageRateHint: "Current rates vary by country/bank",
         mortgageTerm: "Mortgage Term (years)",
+        monthlyMortgage: "Monthly Mortgage Payment",
         rentalStart: "When does rental income start?",
         afterDelivery: "After down payment period (delivery)",
         immediate: "Immediately (existing property)",
@@ -477,6 +482,7 @@ const translations = {
         mortgageRate: "Tasa de Interés Hipoteca (% anual)",
         mortgageRateHint: "Las tasas varían según país/banco",
         mortgageTerm: "Plazo Hipoteca (años)",
+        monthlyMortgage: "Cuota Mensual Hipoteca",
         rentalStart: "¿Cuándo inicia el arriendo?",
         afterDelivery: "Después de la cuota inicial (entrega)",
         immediate: "Inmediatamente (inmueble existente)",
@@ -717,6 +723,19 @@ function doSimulation() {
     const hu = document.getElementById('horizon-unit').value;
     const totalM = hu==='years' ? h*12 : Math.round(h);
     updateEquivalents();
+
+    // Monthly mortgage payment display
+    const mmEl = document.getElementById('monthly-mortgage-value');
+    if (paymentMethod === 'leverage' && pv > 0) {
+        const dpPct = (parseFloat(document.getElementById('down-payment-pct').value)||30)/100;
+        const mRate = (parseFloat(document.getElementById('mortgage-rate').value)||12)/100;
+        const mTerm = parseInt(document.getElementById('mortgage-term').value)||15;
+        const loan = pv * (1 - dpPct);
+        const pmt = calcPMT(loan, mRate, mTerm * 12);
+        mmEl.textContent = '$' + formatShort(pmt);
+    } else {
+        mmEl.textContent = '--';
+    }
 
     // Labels
     const invLabel = paymentMethod==='leverage' ? t.totalInvestedLeverage : t.totalInvestedCash;
