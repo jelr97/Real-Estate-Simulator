@@ -13,6 +13,7 @@
         gtag('config', 'G-D4DKSX4DBE');
     </script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
         html, body { background: #ffffff !important; min-height: 100vh; }
@@ -27,8 +28,16 @@
         .fixed-header-inner { max-width: 500px; margin: 0 auto; }
         .container { max-width: 500px; margin: 0 auto; padding: 0 15px; padding-top: 90px; background: #ffffff; }
         .page-wrapper { background: #ffffff; min-height: 100vh; }
-        .top-controls { display: flex; justify-content: center; align-items: center; margin-bottom: 10px; gap: 10px; }
+        .top-controls { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; gap: 10px; }
         .lang-toggle { display: flex; gap: 6px; }
+        .btn-pdf {
+            padding: 7px 12px; border: 1px solid #e5e7eb; background: #ffffff;
+            color: #667085; border-radius: 20px; font-size: 0.8rem; cursor: pointer;
+            transition: all 0.3s; display: flex; align-items: center; gap: 5px;
+        }
+        .btn-pdf:hover { border-color: #0d9488; color: #0d9488; }
+        .btn-pdf:active { background: #f0fdfa; }
+        .btn-pdf.loading { opacity: 0.5; pointer-events: none; }
         .lang-btn {
             padding: 8px 14px; border: 1px solid #e5e7eb; background: #ffffff;
             color: #667085; border-radius: 20px; font-size: 0.8rem; cursor: pointer; transition: all 0.3s;
@@ -141,6 +150,10 @@
                         <button class="lang-btn active" onclick="setLanguage('en')">English</button>
                         <button class="lang-btn" onclick="setLanguage('es')">Español</button>
                     </div>
+                    <button class="btn-pdf" id="btn-pdf" onclick="downloadPDF()">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                        PDF
+                    </button>
                 </div>
                 <h1 data-i18n="title">Real Estate Simulator</h1>
             </div>
@@ -978,6 +991,49 @@ document.addEventListener('DOMContentLoaded', () => {
     });
     runSimulation();
 });
+
+// === PDF DOWNLOAD ===
+function downloadPDF() {
+    const btn = document.getElementById('btn-pdf');
+    btn.classList.add('loading');
+    btn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> ...';
+
+    const container = document.querySelector('.container');
+    const header = document.querySelector('.fixed-header');
+
+    // Temporarily expand collapsed manual entries for PDF
+    const wrapper = document.getElementById('manual-entries-wrapper');
+    const wasHidden = wrapper.style.display === 'none';
+    if (wasHidden) wrapper.style.display = 'block';
+
+    // Hide header, PDF button and fixed positioning for capture
+    header.style.display = 'none';
+    container.style.paddingTop = '15px';
+
+    const opt = {
+        margin: [8, 5, 8, 5],
+        filename: 'real-estate-simulation.pdf',
+        image: { type: 'jpeg', quality: 0.95 },
+        html2canvas: { scale: 2, useCORS: true, scrollY: 0, windowWidth: 500 },
+        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
+        pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
+    };
+
+    html2pdf().set(opt).from(container).save().then(() => {
+        // Restore
+        header.style.display = '';
+        container.style.paddingTop = '';
+        if (wasHidden) wrapper.style.display = 'none';
+        btn.classList.remove('loading');
+        btn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> PDF';
+    }).catch(() => {
+        header.style.display = '';
+        container.style.paddingTop = '';
+        if (wasHidden) wrapper.style.display = 'none';
+        btn.classList.remove('loading');
+        btn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> PDF';
+    });
+}
 </script>
 </body>
 </html>
