@@ -13,7 +13,6 @@
         gtag('config', 'G-D4DKSX4DBE');
     </script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
         html, body { background: #ffffff !important; min-height: 100vh; }
@@ -139,6 +138,37 @@
             text-align: center; font-size: 1.1rem; color: #7c3aed;
             margin: 20px 0 15px 0; font-weight: 600;
         }
+
+        @media print {
+            * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+            html, body { background: #fff !important; }
+            .fixed-header { display: none !important; }
+            .page-wrapper { min-height: auto !important; padding-bottom: 0 !important; }
+            .container { padding-top: 10px !important; max-width: 100% !important; width: 100% !important; }
+            .card { break-inside: avoid; box-shadow: none !important; border: 1px solid #d0d5dd !important; margin-bottom: 10px !important; }
+            .irr-card { background: linear-gradient(135deg, #0d9488, #0f766e) !important; color: #fff !important; }
+            .irr-card h2, .irr-card .irr-value, .irr-card .irr-subtitle { color: #fff !important; }
+            .pp-irr-card { background: linear-gradient(135deg, #7c3aed, #6d28d9) !important; color: #fff !important; }
+            .pp-irr-card h2, .pp-irr-card .irr-value, .pp-irr-card .irr-subtitle { color: #fff !important; opacity: 1 !important; }
+            #pp-irr-delta { color: #fff !important; opacity: 1 !important; }
+            .chart-container { height: 200px !important; break-inside: avoid; }
+            .net-rental-box { break-inside: avoid; }
+            .metrics-grid { break-inside: avoid; }
+            .section-divider { display: none !important; }
+            .hint { font-size: 0.65rem !important; }
+            table { font-size: 0.65rem !important; }
+            .assumptions { break-inside: avoid; }
+            #prepay-recommendation { break-inside: avoid; }
+            #prepay-summary { break-inside: avoid; }
+            /* Hide interactive controls */
+            .toggle-container { pointer-events: none; }
+            .autofill-row, .autofill-buttons { display: none !important; }
+            #manual-entries-wrapper { display: none !important; }
+            .btn-add { display: none !important; }
+            /* Print title */
+            h1.print-title { display: block !important; text-align: center; font-size: 1.3rem; color: #0d9488; margin-bottom: 12px; }
+        }
+        h1.print-title { display: none; }
     </style>
 </head>
 <body>
@@ -160,6 +190,7 @@
         </div>
 
         <div class="container">
+            <h1 class="print-title" data-i18n="title">Real Estate Simulator</h1>
             <!-- Property Details -->
             <div class="card" id="inputs-card">
                 <h2 data-i18n="propertyDetails">Property Details</h2>
@@ -994,45 +1025,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
 // === PDF DOWNLOAD ===
 function downloadPDF() {
-    const btn = document.getElementById('btn-pdf');
-    btn.classList.add('loading');
-    btn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> ...';
-
-    const container = document.querySelector('.container');
-    const header = document.querySelector('.fixed-header');
-
-    // Temporarily expand collapsed manual entries for PDF
-    const wrapper = document.getElementById('manual-entries-wrapper');
-    const wasHidden = wrapper.style.display === 'none';
-    if (wasHidden) wrapper.style.display = 'block';
-
-    // Hide header, PDF button and fixed positioning for capture
-    header.style.display = 'none';
-    container.style.paddingTop = '15px';
-
-    const opt = {
-        margin: [8, 5, 8, 5],
-        filename: 'real-estate-simulation.pdf',
-        image: { type: 'jpeg', quality: 0.95 },
-        html2canvas: { scale: 2, useCORS: true, scrollY: 0, windowWidth: 500 },
-        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
-        pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
-    };
-
-    html2pdf().set(opt).from(container).save().then(() => {
-        // Restore
-        header.style.display = '';
-        container.style.paddingTop = '';
-        if (wasHidden) wrapper.style.display = 'none';
-        btn.classList.remove('loading');
-        btn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> PDF';
-    }).catch(() => {
-        header.style.display = '';
-        container.style.paddingTop = '';
-        if (wasHidden) wrapper.style.display = 'none';
-        btn.classList.remove('loading');
-        btn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> PDF';
-    });
+    window.print();
 }
 </script>
 </body>
