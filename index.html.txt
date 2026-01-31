@@ -1,0 +1,1125 @@
+
+
+<!DOCTYPE html>
+
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Real Estate Investment Simulator</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        html, body {
+            background: #ffffff !important;
+            min-height: 100vh;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #ffffff !important;
+            color: #1a1a2e;
+            padding-bottom: 40px;
+        }
+        .fixed-header {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 100;
+            background: #ffffff;
+            padding: 15px 15px 10px 15px;
+            border-bottom: 1px solid #e5e7eb;
+        }
+        .fixed-header-inner {
+            max-width: 500px;
+            margin: 0 auto;
+        }
+        .container {
+            max-width: 500px;
+            margin: 0 auto;
+            padding: 0 15px;
+            padding-top: 90px;
+            background: #ffffff;
+        }
+        .page-wrapper {
+            background: #ffffff;
+            min-height: 100vh;
+        }
+        .top-controls {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin-bottom: 10px;
+            gap: 10px;
+        }
+        .lang-toggle {
+            display: flex;
+            gap: 6px;
+        }
+        .lang-btn {
+            padding: 8px 14px;
+            border: 1px solid #e5e7eb;
+            background: #ffffff;
+            color: #667085;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        .lang-btn.active {
+            background: #0d9488;
+            border-color: #0d9488;
+            color: #fff;
+        }
+        h1 {
+            text-align: center;
+            font-size: 1.4rem;
+            margin: 0;
+            color: #0d9488;
+        }
+        .card {
+            background: #ffffff;
+            border-radius: 16px;
+            padding: 18px;
+            margin-bottom: 15px;
+            border: 1px solid #e5e7eb;
+        }
+        .card h2 {
+            font-size: 0.95rem;
+            margin-bottom: 15px;
+            color: #0d9488;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .input-group {
+            margin-bottom: 14px;
+        }
+        .input-group label {
+            display: block;
+            font-size: 0.82rem;
+            color: #475467;
+            margin-bottom: 5px;
+        }
+        .input-row {
+            display: flex;
+            gap: 10px;
+        }
+        .input-row input, .input-row select {
+            flex: 1;
+        }
+        input, select {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #e5e7eb;
+            border-radius: 10px;
+            background: #ffffff;
+            color: #1a1a2e;
+            font-size: 1rem;
+        }
+        input::placeholder {
+            color: #98a2b3;
+        }
+        input:focus, select:focus {
+            outline: none;
+            border-color: #0d9488;
+        }
+        .input-suffix {
+            position: relative;
+        }
+        .input-suffix input {
+            padding-right: 50px;
+        }
+        .input-suffix .suffix {
+            position: absolute;
+            right: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #98a2b3;
+            font-size: 0.9rem;
+            pointer-events: none;
+        }
+        .hint {
+            font-size: 0.72rem;
+            color: #98a2b3;
+            margin-top: 4px;
+        }
+        .equivalent {
+            font-size: 0.78rem;
+            color: #0d9488;
+            margin-top: 4px;
+            font-weight: 500;
+        }
+        .equivalent.negative {
+            color: #dc2626;
+        }
+        .toggle-container {
+            display: flex;
+            background: #ffffff;
+            border: 1px solid #e5e7eb;
+            border-radius: 10px;
+            padding: 4px;
+        }
+        .toggle-btn {
+            flex: 1;
+            padding: 10px;
+            border: none;
+            background: transparent;
+            color: #667085;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        .toggle-btn.active {
+            background: #0d9488;
+            color: #fff;
+            font-weight: 600;
+        }
+        .leverage-details {
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 1px solid #e5e7eb;
+        }
+        .irr-card {
+            background: linear-gradient(135deg, #0d9488, #14b8a6);
+            color: #fff;
+            text-align: center;
+        }
+        .irr-card h2 {
+            color: #fff;
+            opacity: 0.9;
+            justify-content: center;
+        }
+        .irr-value {
+            font-size: 2.8rem;
+            font-weight: 700;
+            margin: 10px 0;
+        }
+        .irr-subtitle {
+            font-size: 0.85rem;
+            opacity: 0.85;
+        }
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+        .metric-box {
+            background: #ffffff;
+            border: 1px solid #e5e7eb;
+            border-radius: 10px;
+            padding: 12px;
+            text-align: center;
+        }
+        .metric-label {
+            font-size: 0.72rem;
+            color: #667085;
+            margin-bottom: 4px;
+        }
+        .metric-value {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: #1a1a2e;
+        }
+        .metric-value.positive {
+            color: #0d9488;
+        }
+        .metric-value.negative {
+            color: #dc2626;
+        }
+        .chart-container {
+            position: relative;
+            height: 280px;
+            margin-top: 10px;
+        }
+        .table-container {
+            overflow-x: auto;
+            margin-top: 10px;
+        }
+        .table-note {
+            font-size: 0.72rem;
+            color: #667085;
+            margin-bottom: 8px;
+            font-style: italic;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.72rem;
+        }
+        th, td {
+            padding: 6px 4px;
+            text-align: right;
+            border-bottom: 1px solid #e5e7eb;
+        }
+        th {
+            color: #0d9488;
+            font-weight: 500;
+            position: sticky;
+            top: 0;
+            background: #ffffff;
+            z-index: 1;
+        }
+        td {
+            color: #475467;
+        }
+        td:first-child, th:first-child {
+            text-align: left;
+        }
+        .cash-in { color: #0d9488 !important; }
+        .cash-out { color: #dc2626 !important; }
+        .assumptions {
+            font-size: 0.72rem;
+            color: #667085;
+            padding: 10px;
+            background: #ffffff;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            margin-top: 10px;
+        }
+        .assumptions strong {
+            color: #475467;
+        }
+        .section-divider {
+            height: 1px;
+            background: #e5e7eb;
+            margin: 20px 0;
+        }
+        .net-rental-box {
+            background: #ffffff;
+            border: 1px solid #0d9488;
+            border-radius: 8px;
+            padding: 10px;
+            margin-top: 10px;
+            text-align: center;
+        }
+        .net-rental-label {
+            font-size: 0.75rem;
+            color: #0d9488;
+        }
+        .net-rental-value {
+            font-size: 1rem;
+            font-weight: 600;
+            color: #0d9488;
+        }
+    </style>
+</head>
+<body>
+    <div class="page-wrapper">
+        <!-- Fixed Header -->
+        <div class="fixed-header">
+            <div class="fixed-header-inner">
+                <div class="top-controls">
+                    <div class="lang-toggle">
+                        <button class="lang-btn active" onclick="setLanguage('en')">English</button>
+                        <button class="lang-btn" onclick="setLanguage('es')">Español</button>
+                    </div>
+                </div>
+                <h1 data-i18n="title">Real Estate Simulator</h1>
+            </div>
+        </div>
+
+```
+    <div class="container">
+        <!-- Property Details -->
+        <div class="card" id="inputs-card">
+            <h2 data-i18n="propertyDetails">Property Details</h2>
+            
+            <div class="input-group">
+                <label data-i18n="propertyValue">Property Value Today (millions)</label>
+                <div class="input-suffix">
+                    <input type="number" id="property-value" placeholder="500" step="any">
+                    <span class="suffix">M</span>
+                </div>
+            </div>
+
+            <div class="input-group">
+                <label data-i18n="appreciation">Expected Annual Appreciation (%)</label>
+                <input type="number" id="appreciation" placeholder="e.g., 6" value="6" step="0.1">
+                <p class="hint" data-i18n="appreciationHint">Historical avg: 3-7% depending on market</p>
+            </div>
+
+            <div class="input-group">
+                <label data-i18n="rentalIncome">Monthly Rental Income (millions)</label>
+                <div class="input-suffix">
+                    <input type="number" id="rental-income" placeholder="2.0" value="2.0" step="0.1">
+                    <span class="suffix">M</span>
+                </div>
+                <p class="equivalent" id="rental-equivalent"></p>
+            </div>
+
+            <div class="input-group">
+                <label data-i18n="monthlyExpenses">Monthly Expenses (millions)</label>
+                <div class="input-suffix">
+                    <input type="number" id="monthly-expenses" placeholder="0.8" value="0.8" step="0.1">
+                    <span class="suffix">M</span>
+                </div>
+                <p class="equivalent negative" id="expenses-equivalent"></p>
+            </div>
+
+            <div class="net-rental-box">
+                <div class="net-rental-label" data-i18n="netMonthlyRental">Net Monthly Rental</div>
+                <div class="net-rental-value" id="net-rental-value">--</div>
+            </div>
+
+            <div class="input-group" style="margin-top: 14px;">
+                <label data-i18n="horizon">Investment Horizon</label>
+                <div class="input-row">
+                    <input type="number" id="horizon" placeholder="e.g., 10" value="10" step="1">
+                    <select id="horizon-unit">
+                        <option value="years" data-i18n="years">Years</option>
+                        <option value="months" data-i18n="months">Months</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <!-- Financing -->
+        <div class="card" id="financing-card">
+            <h2 data-i18n="financingStructure">Financing Structure</h2>
+            
+            <div class="input-group">
+                <label data-i18n="paymentMethod">Payment Method</label>
+                <div class="toggle-container">
+                    <button class="toggle-btn active" data-method="leverage" onclick="setPaymentMethod('leverage')" data-i18n="leverage">Leverage</button>
+                    <button class="toggle-btn" data-method="cash" onclick="setPaymentMethod('cash')" data-i18n="cash">100% Cash</button>
+                </div>
+            </div>
+
+            <div id="leverage-section" class="leverage-details">
+                <div class="input-group">
+                    <label data-i18n="downPaymentPct">Down Payment (%)</label>
+                    <input type="number" id="down-payment-pct" placeholder="e.g., 30" value="30" min="10" max="100" step="1">
+                    <p class="hint" data-i18n="downPaymentHint">Typical minimum: 20-30%</p>
+                </div>
+
+                <div class="input-group">
+                    <label data-i18n="downPaymentMonths">Down Payment Period (months)</label>
+                    <input type="number" id="down-payment-months" placeholder="e.g., 24" value="24" min="1" max="60" step="1">
+                    <p class="hint" data-i18n="downPaymentMonthsHint">Time to pay down payment in installments (0% interest)</p>
+                </div>
+
+                <div class="input-group">
+                    <label data-i18n="mortgageRate">Mortgage Interest Rate (% annual)</label>
+                    <input type="number" id="mortgage-rate" placeholder="e.g., 12" value="12" step="0.1">
+                    <p class="hint" data-i18n="mortgageRateHint">Current rates vary by country/bank</p>
+                </div>
+
+                <div class="input-group">
+                    <label data-i18n="mortgageTerm">Mortgage Term (years)</label>
+                    <input type="number" id="mortgage-term" placeholder="e.g., 15" value="15" min="1" max="30" step="1">
+                </div>
+
+                <div class="input-group">
+                    <label data-i18n="rentalStart">When does rental income start?</label>
+                    <select id="rental-start">
+                        <option value="after-dp" data-i18n="afterDelivery">After down payment period (delivery)</option>
+                        <option value="immediate" data-i18n="immediate">Immediately (existing property)</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <!-- Results Section -->
+        <div class="section-divider"></div>
+
+        <div class="results-section" id="results">
+            <!-- IRR Hero -->
+            <div class="card irr-card" id="irr-card">
+                <h2 data-i18n="irrTitle">Internal Rate of Return (IRR)</h2>
+                <div class="irr-value" id="irr-value">--</div>
+                <div class="irr-subtitle" data-i18n="irrSubtitle">Annualized return on your cash invested</div>
+            </div>
+
+            <!-- Key Metrics -->
+            <div class="card" id="summary-card">
+                <h2 data-i18n="investmentSummary">Investment Summary</h2>
+                <div class="metrics-grid">
+                    <div class="metric-box">
+                        <div class="metric-label" data-i18n="totalInvested">Total Cash Invested</div>
+                        <div class="metric-value" id="total-invested">--</div>
+                    </div>
+                    <div class="metric-box">
+                        <div class="metric-label" data-i18n="finalPropertyValue">Final Property Value</div>
+                        <div class="metric-value" id="final-property-value">--</div>
+                    </div>
+                    <div class="metric-box">
+                        <div class="metric-label" data-i18n="totalRentalGross">Total Rental (Gross)</div>
+                        <div class="metric-value positive" id="total-rental">--</div>
+                    </div>
+                    <div class="metric-box">
+                        <div class="metric-label" data-i18n="totalExpenses">Total Expenses</div>
+                        <div class="metric-value negative" id="total-expenses">--</div>
+                    </div>
+                    <div class="metric-box">
+                        <div class="metric-label" data-i18n="totalInterest">Total Interest Paid</div>
+                        <div class="metric-value negative" id="total-interest">--</div>
+                    </div>
+                    <div class="metric-box">
+                        <div class="metric-label" data-i18n="netProceeds">Net Proceeds at Sale</div>
+                        <div class="metric-value" id="net-proceeds">--</div>
+                    </div>
+                    <div class="metric-box">
+                        <div class="metric-label" data-i18n="totalProfit">Total Profit</div>
+                        <div class="metric-value positive" id="total-profit">--</div>
+                    </div>
+                    <div class="metric-box">
+                        <div class="metric-label" data-i18n="moic">Return Multiple (MOIC)</div>
+                        <div class="metric-value positive" id="moic">--</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Chart -->
+            <div class="card" id="chart-card">
+                <h2 data-i18n="chartTitle">Equity, Cash Flow & Debt</h2>
+                <div class="chart-container">
+                    <canvas id="chart"></canvas>
+                </div>
+            </div>
+
+            <!-- Yearly Breakdown -->
+            <div class="card" id="table-card">
+                <h2 data-i18n="yearlyBreakdown">Yearly Breakdown</h2>
+                <p class="table-note" data-i18n="tableNote">Numbers in $ millions</p>
+                <div class="table-container">
+                    <table id="yearly-table">
+                        <thead>
+                            <tr>
+                                <th data-i18n="thYear">Year</th>
+                                <th data-i18n="thPropertyValue">Value</th>
+                                <th data-i18n="thEquity">Equity</th>
+                                <th data-i18n="thDebt">Debt</th>
+                                <th data-i18n="thInflows">Inflows</th>
+                                <th data-i18n="thOutflows">Outflows</th>
+                                <th data-i18n="thCumCashFlow">Cum. CF</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Assumptions -->
+            <div class="card" id="assumptions-card">
+                <h2 data-i18n="assumptionsTitle">Assumptions</h2>
+                <div class="assumptions" id="assumptions-text"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    let paymentMethod = 'leverage';
+    let chart = null;
+    let currentLang = 'en';
+    let simulateTimeout = null;
+    const DEFAULT_PROPERTY_VALUE = 500;
+
+    const translations = {
+        en: {
+            title: "Real Estate Simulator",
+            propertyDetails: "Property Details",
+            propertyValue: "Property Value Today (millions)",
+            appreciation: "Expected Annual Appreciation (%)",
+            appreciationHint: "Historical avg: 3-7% depending on market",
+            rentalIncome: "Monthly Rental Income (millions)",
+            rentalEquivalent: "{annual}% annual yield",
+            monthlyExpenses: "Monthly Expenses (millions)",
+            expensesEquivalent: "{annual}% annual of property",
+            netMonthlyRental: "Net Monthly Rental",
+            horizon: "Investment Horizon",
+            years: "Years",
+            months: "Months",
+            financingStructure: "Financing Structure",
+            paymentMethod: "Payment Method",
+            cash: "100% Cash",
+            leverage: "Leverage",
+            downPaymentPct: "Down Payment (%)",
+            downPaymentHint: "Typical minimum: 20-30%",
+            downPaymentMonths: "Down Payment Period (months)",
+            downPaymentMonthsHint: "Time to pay down payment in installments (0% interest)",
+            mortgageRate: "Mortgage Interest Rate (% annual)",
+            mortgageRateHint: "Current rates vary by country/bank",
+            mortgageTerm: "Mortgage Term (years)",
+            rentalStart: "When does rental income start?",
+            afterDelivery: "After down payment period (delivery)",
+            immediate: "Immediately (existing property)",
+            irrTitle: "Internal Rate of Return (IRR)",
+            irrSubtitle: "Annualized return on your cash invested",
+            investmentSummary: "Investment Summary",
+            totalInvested: "Total Cash Invested",
+            finalPropertyValue: "Final Property Value",
+            totalRentalGross: "Total Rental (Gross)",
+            totalExpenses: "Total Expenses",
+            totalInterest: "Total Interest Paid",
+            netProceeds: "Net Proceeds at Sale",
+            totalProfit: "Total Profit",
+            moic: "Return Multiple (MOIC)",
+            chartTitle: "Equity, Cash Flow & Debt",
+            chartEquity: "Equity",
+            chartCashFlow: "Cumulative Cash Flow",
+            chartDebt: "Debt Outstanding",
+            yearlyBreakdown: "Yearly Breakdown",
+            tableNote: "Numbers in $ millions",
+            thYear: "Year",
+            thPropertyValue: "Value",
+            thEquity: "Equity",
+            thDebt: "Debt",
+            thInflows: "Inflows",
+            thOutflows: "Outflows",
+            thCumCashFlow: "Cum. CF",
+            assumptionsTitle: "Assumptions",
+            assumptionsModel: "Model assumptions:",
+            assumptionAppreciation: "Property appreciates at {rate}% annually (compounded monthly)",
+            assumptionRental: "Monthly rental income of ${amount}",
+            assumptionExpenses: "Monthly expenses of ${amount}",
+            assumptionNoVacancy: "No vacancy or transaction costs included",
+            assumptionSale: "Property sold at end of horizon at appreciated value",
+            assumptionMortgage: "Mortgage uses standard amortization formula",
+            assumptionDownPayment: "Down payment installments have 0% interest",
+            yearsAxis: "Years"
+        },
+        es: {
+            title: "Simulador Inmobiliario",
+            propertyDetails: "Datos del Inmueble",
+            propertyValue: "Valor del Inmueble Hoy (millones)",
+            appreciation: "Valorización Anual Esperada (%)",
+            appreciationHint: "Promedio histórico: 3-7% según el mercado",
+            rentalIncome: "Arriendo Mensual (millones)",
+            rentalEquivalent: "{annual}% rendimiento anual",
+            monthlyExpenses: "Gastos Mensuales (millones)",
+            expensesEquivalent: "{annual}% anual del inmueble",
+            netMonthlyRental: "Arriendo Neto Mensual",
+            horizon: "Horizonte de Inversión",
+            years: "Años",
+            months: "Meses",
+            financingStructure: "Estructura de Financiación",
+            paymentMethod: "Método de Pago",
+            cash: "100% Contado",
+            leverage: "Apalancado",
+            downPaymentPct: "Cuota Inicial (%)",
+            downPaymentHint: "Mínimo típico: 20-30%",
+            downPaymentMonths: "Plazo Cuota Inicial (meses)",
+            downPaymentMonthsHint: "Tiempo para pagar la cuota inicial en cuotas (0% interés)",
+            mortgageRate: "Tasa de Interés Hipoteca (% anual)",
+            mortgageRateHint: "Las tasas varían según país/banco",
+            mortgageTerm: "Plazo Hipoteca (años)",
+            rentalStart: "¿Cuándo inicia el arriendo?",
+            afterDelivery: "Después de la cuota inicial (entrega)",
+            immediate: "Inmediatamente (inmueble existente)",
+            irrTitle: "Tasa Interna de Retorno (TIR)",
+            irrSubtitle: "Retorno anualizado sobre el efectivo invertido",
+            investmentSummary: "Resumen de Inversión",
+            totalInvested: "Total Efectivo Invertido",
+            finalPropertyValue: "Valor Final del Inmueble",
+            totalRentalGross: "Total Arriendo (Bruto)",
+            totalExpenses: "Total Gastos",
+            totalInterest: "Total Intereses Pagados",
+            netProceeds: "Producto Neto de Venta",
+            totalProfit: "Ganancia Total",
+            moic: "Múltiplo de Retorno (MOIC)",
+            chartTitle: "Patrimonio, Flujo de Caja y Deuda",
+            chartEquity: "Patrimonio",
+            chartCashFlow: "Flujo de Caja Acumulado",
+            chartDebt: "Deuda Pendiente",
+            yearlyBreakdown: "Desglose Anual",
+            tableNote: "Números en $ millones",
+            thYear: "Año",
+            thPropertyValue: "Valor",
+            thEquity: "Patrimonio",
+            thDebt: "Deuda",
+            thInflows: "Entradas",
+            thOutflows: "Salidas",
+            thCumCashFlow: "Flujo Ac.",
+            assumptionsTitle: "Supuestos",
+            assumptionsModel: "Supuestos del modelo:",
+            assumptionAppreciation: "El inmueble se valoriza {rate}% anual (capitalización mensual)",
+            assumptionRental: "Arriendo mensual de ${amount}",
+            assumptionExpenses: "Gastos mensuales de ${amount}",
+            assumptionNoVacancy: "No incluye vacancia ni costos de transacción",
+            assumptionSale: "El inmueble se vende al final del horizonte al valor apreciado",
+            assumptionMortgage: "La hipoteca usa fórmula de amortización estándar",
+            assumptionDownPayment: "Las cuotas de la cuota inicial no tienen interés",
+            yearsAxis: "Años"
+        }
+    };
+
+    function getPropertyValue() {
+        const inputVal = document.getElementById('property-value').value;
+        const millions = inputVal === '' ? DEFAULT_PROPERTY_VALUE : (parseFloat(inputVal) || 0);
+        return millions * 1000000;
+    }
+
+    function formatShort(num) {
+        const absNum = Math.abs(num);
+        if (absNum >= 1e9) return (num / 1e9).toFixed(1) + 'B';
+        if (absNum >= 1e6) return (num / 1e6).toFixed(1) + 'M';
+        if (absNum >= 1e3) return (num / 1e3).toFixed(0) + 'K';
+        return num.toFixed(0);
+    }
+
+    function formatTableNumber(num) {
+        const absNum = Math.abs(num);
+        const sign = num < 0 ? '-' : '';
+        const millions = absNum / 1e6;
+        
+        if (millions >= 1000) {
+            return sign + Math.round(millions);
+        } else if (millions >= 1) {
+            return sign + Math.round(millions);
+        } else {
+            return sign + millions.toFixed(1);
+        }
+    }
+
+    function formatCurrencyNoDecimals(num) {
+        const absNum = Math.abs(num);
+        const sign = num < 0 ? '-' : '';
+        
+        let formatted;
+        if (absNum >= 1e9) {
+            formatted = '$' + Math.round(absNum / 1e9) + 'B';
+        } else if (absNum >= 1e6) {
+            formatted = '$' + Math.round(absNum / 1e6) + 'M';
+        } else if (absNum >= 1e3) {
+            formatted = '$' + Math.round(absNum / 1e3) + 'K';
+        } else {
+            formatted = '$' + Math.round(absNum);
+        }
+        
+        return sign + formatted;
+    }
+
+    function updateEquivalents() {
+        const propertyValue = getPropertyValue();
+        const monthlyRent = (parseFloat(document.getElementById('rental-income').value) || 0) * 1000000;
+        const monthlyExp = (parseFloat(document.getElementById('monthly-expenses').value) || 0) * 1000000;
+        const netRental = monthlyRent - monthlyExp;
+        
+        const rentalEl = document.getElementById('rental-equivalent');
+        const expensesEl = document.getElementById('expenses-equivalent');
+        const netEl = document.getElementById('net-rental-value');
+        
+        if (propertyValue > 0) {
+            const annualRentalPct = ((monthlyRent * 12) / propertyValue * 100).toFixed(2);
+            const annualExpensesPct = ((monthlyExp * 12) / propertyValue * 100).toFixed(2);
+            
+            if (monthlyRent > 0) {
+                rentalEl.textContent = translations[currentLang].rentalEquivalent
+                    .replace('{annual}', annualRentalPct);
+            } else {
+                rentalEl.textContent = '';
+            }
+            
+            if (monthlyExp > 0) {
+                expensesEl.textContent = translations[currentLang].expensesEquivalent
+                    .replace('{annual}', annualExpensesPct);
+            } else {
+                expensesEl.textContent = '';
+            }
+            
+            netEl.textContent = '$' + formatShort(netRental);
+            netEl.style.color = netRental >= 0 ? '#0d9488' : '#dc2626';
+        } else {
+            rentalEl.textContent = '';
+            expensesEl.textContent = '';
+            netEl.textContent = '--';
+        }
+    }
+
+    function setLanguage(lang) {
+        currentLang = lang;
+        
+        document.querySelectorAll('.lang-btn').forEach(btn => {
+            btn.classList.toggle('active', btn.textContent.toLowerCase().includes(lang === 'en' ? 'english' : 'español'));
+        });
+
+        document.querySelectorAll('[data-i18n]').forEach(el => {
+            const key = el.getAttribute('data-i18n');
+            if (translations[lang][key]) {
+                el.textContent = translations[lang][key];
+            }
+        });
+
+        document.querySelectorAll('select option[data-i18n]').forEach(el => {
+            const key = el.getAttribute('data-i18n');
+            if (translations[lang][key]) {
+                el.textContent = translations[lang][key];
+            }
+        });
+
+        runSimulation();
+    }
+
+    function setPaymentMethod(method) {
+        paymentMethod = method;
+        document.querySelectorAll('.toggle-btn').forEach(btn => {
+            btn.classList.toggle('active', btn.dataset.method === method);
+        });
+        document.getElementById('leverage-section').style.display = method === 'leverage' ? 'block' : 'none';
+        runSimulation();
+    }
+
+    function calculateMortgagePayment(principal, annualRate, years) {
+        const monthlyRate = annualRate / 12;
+        const n = years * 12;
+        if (monthlyRate === 0) return principal / n;
+        return principal * (monthlyRate * Math.pow(1 + monthlyRate, n)) / (Math.pow(1 + monthlyRate, n) - 1);
+    }
+
+    function calculateIRR(cashflows, guess = 0.1) {
+        const maxIterations = 1000;
+        const tolerance = 1e-7;
+        let rate = guess;
+
+        for (let i = 0; i < maxIterations; i++) {
+            let npv = 0;
+            let dnpv = 0;
+
+            for (let t = 0; t < cashflows.length; t++) {
+                const discountFactor = Math.pow(1 + rate, t);
+                npv += cashflows[t] / discountFactor;
+                dnpv -= t * cashflows[t] / Math.pow(1 + rate, t + 1);
+            }
+
+            const newRate = rate - npv / dnpv;
+            
+            if (Math.abs(newRate - rate) < tolerance) {
+                return newRate;
+            }
+            rate = newRate;
+
+            if (rate < -0.99) rate = -0.99;
+            if (rate > 10) rate = 10;
+        }
+        return rate;
+    }
+
+    function runSimulation() {
+        if (simulateTimeout) clearTimeout(simulateTimeout);
+        simulateTimeout = setTimeout(simulate, 100);
+    }
+
+    function simulate() {
+        const t = translations[currentLang];
+        
+        const propertyValue = getPropertyValue();
+        const appreciationRate = (parseFloat(document.getElementById('appreciation').value) || 0) / 100;
+        const monthlyRentInput = (parseFloat(document.getElementById('rental-income').value) || 0) * 1000000;
+        const monthlyExpInput = (parseFloat(document.getElementById('monthly-expenses').value) || 0) * 1000000;
+        const horizon = parseFloat(document.getElementById('horizon').value) || 10;
+        const horizonUnit = document.getElementById('horizon-unit').value;
+        const totalMonths = horizonUnit === 'years' ? horizon * 12 : Math.round(horizon);
+
+        updateEquivalents();
+
+        if (propertyValue <= 0 || totalMonths <= 0) {
+            document.getElementById('irr-value').textContent = '--';
+            document.getElementById('total-invested').textContent = '--';
+            document.getElementById('final-property-value').textContent = '--';
+            document.getElementById('total-rental').textContent = '--';
+            document.getElementById('total-expenses').textContent = '--';
+            document.getElementById('total-interest').textContent = '--';
+            document.getElementById('net-proceeds').textContent = '--';
+            document.getElementById('total-profit').textContent = '--';
+            document.getElementById('moic').textContent = '--';
+            document.querySelector('#yearly-table tbody').innerHTML = '';
+            if (chart) { chart.destroy(); chart = null; }
+            return;
+        }
+
+        let cashflows = [];
+        let yearlyData = [];
+        let totalRental = 0;
+        let totalExpenses = 0;
+        let totalInterest = 0;
+        let totalInvested = 0;
+
+        let yearlyInflows = {};
+        let yearlyOutflows = {};
+
+        if (paymentMethod === 'cash') {
+            cashflows.push(-propertyValue);
+            totalInvested = propertyValue;
+            yearlyOutflows[1] = propertyValue;
+
+            for (let m = 1; m <= totalMonths; m++) {
+                const year = Math.ceil(m / 12);
+                const currentValue = propertyValue * Math.pow(1 + appreciationRate / 12, m);
+                const netRent = monthlyRentInput - monthlyExpInput;
+                
+                totalRental += monthlyRentInput;
+                totalExpenses += monthlyExpInput;
+
+                if (!yearlyInflows[year]) yearlyInflows[year] = 0;
+                if (!yearlyOutflows[year]) yearlyOutflows[year] = 0;
+                yearlyInflows[year] += monthlyRentInput;
+                yearlyOutflows[year] += monthlyExpInput;
+                
+                if (m === totalMonths) {
+                    cashflows.push(netRent + currentValue);
+                    yearlyInflows[year] += currentValue;
+                } else {
+                    cashflows.push(netRent);
+                }
+
+                if (m % 12 === 0 || m === totalMonths) {
+                    yearlyData.push({
+                        year: year,
+                        propertyValue: currentValue,
+                        equity: currentValue,
+                        debt: 0,
+                        cumCashflow: totalRental - totalExpenses - propertyValue,
+                        inflows: yearlyInflows[year] || 0,
+                        outflows: yearlyOutflows[year] || 0
+                    });
+                }
+            }
+
+        } else {
+            const downPaymentPct = (parseFloat(document.getElementById('down-payment-pct').value) || 30) / 100;
+            const downPaymentMonths = parseInt(document.getElementById('down-payment-months').value) || 24;
+            const mortgageRate = (parseFloat(document.getElementById('mortgage-rate').value) || 12) / 100;
+            const mortgageTerm = parseInt(document.getElementById('mortgage-term').value) || 15;
+            const rentalStart = document.getElementById('rental-start').value;
+
+            const downPayment = propertyValue * downPaymentPct;
+            const monthlyDownPayment = downPayment / downPaymentMonths;
+            const loanAmount = propertyValue * (1 - downPaymentPct);
+            const monthlyMortgage = calculateMortgagePayment(loanAmount, mortgageRate, mortgageTerm);
+
+            let mortgageBalance = loanAmount;
+            let cumCashflow = 0;
+
+            for (let m = 0; m <= totalMonths; m++) {
+                const year = Math.max(1, Math.ceil((m + 1) / 12));
+                const currentValue = propertyValue * Math.pow(1 + appreciationRate / 12, m);
+                let cf = 0;
+
+                if (!yearlyInflows[year]) yearlyInflows[year] = 0;
+                if (!yearlyOutflows[year]) yearlyOutflows[year] = 0;
+
+                if (m === 0) {
+                    cf = -monthlyDownPayment;
+                    totalInvested += monthlyDownPayment;
+                    yearlyOutflows[year] += monthlyDownPayment;
+                } else if (m <= downPaymentMonths) {
+                    cf = -monthlyDownPayment;
+                    totalInvested += monthlyDownPayment;
+                    yearlyOutflows[year] += monthlyDownPayment;
+
+                    if (rentalStart === 'immediate') {
+                        cf += monthlyRentInput - monthlyExpInput;
+                        totalRental += monthlyRentInput;
+                        totalExpenses += monthlyExpInput;
+                        yearlyInflows[year] += monthlyRentInput;
+                        yearlyOutflows[year] += monthlyExpInput;
+                    }
+                } else {
+                    if (mortgageBalance > 0) {
+                        const interestPortion = mortgageBalance * (mortgageRate / 12);
+                        const principalPortion = Math.min(monthlyMortgage - interestPortion, mortgageBalance);
+                        totalInterest += interestPortion;
+                        mortgageBalance -= principalPortion;
+                        cf = -monthlyMortgage;
+                        yearlyOutflows[year] += monthlyMortgage;
+                    }
+
+                    cf += monthlyRentInput - monthlyExpInput;
+                    totalRental += monthlyRentInput;
+                    totalExpenses += monthlyExpInput;
+                    yearlyInflows[year] += monthlyRentInput;
+                    yearlyOutflows[year] += monthlyExpInput;
+                }
+
+                if (m === totalMonths) {
+                    cf += currentValue - Math.max(0, mortgageBalance);
+                    yearlyInflows[year] += currentValue - Math.max(0, mortgageBalance);
+                }
+
+                cumCashflow += cf;
+                cashflows.push(cf);
+
+                if (m > 0 && (m % 12 === 0 || m === totalMonths)) {
+                    const actualYear = Math.ceil(m / 12);
+                    const equity = currentValue - Math.max(0, mortgageBalance);
+                    yearlyData.push({
+                        year: actualYear,
+                        propertyValue: currentValue,
+                        equity: equity,
+                        debt: Math.max(0, mortgageBalance),
+                        cumCashflow: cumCashflow,
+                        inflows: yearlyInflows[actualYear] || 0,
+                        outflows: yearlyOutflows[actualYear] || 0
+                    });
+                }
+            }
+        }
+
+        const monthlyIRR = calculateIRR(cashflows, 0.01);
+        const annualIRR = Math.pow(1 + monthlyIRR, 12) - 1;
+
+        const finalPropertyValue = propertyValue * Math.pow(1 + appreciationRate, totalMonths / 12);
+        const totalCashOut = cashflows.reduce((s, cf) => cf < 0 ? s + Math.abs(cf) : s, 0);
+        const totalCashIn = cashflows.reduce((s, cf) => cf > 0 ? s + cf : s, 0);
+        const totalProfit = totalCashIn - totalCashOut;
+        const netProceeds = cashflows[cashflows.length - 1];
+        const moic = totalCashOut > 0 ? totalCashIn / totalCashOut : 0;
+
+        document.getElementById('irr-value').textContent = isFinite(annualIRR) ? (annualIRR * 100).toFixed(2) + '%' : '--';
+        document.getElementById('total-invested').textContent = formatCurrencyNoDecimals(totalInvested);
+        document.getElementById('final-property-value').textContent = formatCurrencyNoDecimals(finalPropertyValue);
+        document.getElementById('total-rental').textContent = formatCurrencyNoDecimals(totalRental);
+        document.getElementById('total-expenses').textContent = formatCurrencyNoDecimals(totalExpenses);
+        document.getElementById('total-interest').textContent = totalInterest > 0 ? formatCurrencyNoDecimals(totalInterest) : 'N/A';
+        document.getElementById('net-proceeds').textContent = formatCurrencyNoDecimals(netProceeds);
+        document.getElementById('total-profit').textContent = formatCurrencyNoDecimals(totalProfit);
+        document.getElementById('moic').textContent = moic > 0 ? moic.toFixed(2) + 'x' : '--';
+
+        const tbody = document.querySelector('#yearly-table tbody');
+        tbody.innerHTML = yearlyData.map(y => `
+            <tr>
+                <td>${y.year}</td>
+                <td>${formatTableNumber(y.propertyValue)}</td>
+                <td>${formatTableNumber(y.equity)}</td>
+                <td class="${y.debt > 0 ? 'cash-out' : ''}">${formatTableNumber(y.debt)}</td>
+                <td class="cash-in">${formatTableNumber(y.inflows)}</td>
+                <td class="cash-out">${formatTableNumber(y.outflows)}</td>
+                <td class="${y.cumCashflow >= 0 ? 'cash-in' : 'cash-out'}">${formatTableNumber(y.cumCashflow)}</td>
+            </tr>
+        `).join('');
+
+        updateChart(yearlyData);
+
+        let assumptionsHTML = `
+            <strong>${t.assumptionsModel}</strong><br>
+            • ${t.assumptionAppreciation.replace('{rate}', (appreciationRate * 100).toFixed(1))}<br>
+            • ${t.assumptionRental.replace('{amount}', formatShort(monthlyRentInput))}<br>
+            • ${t.assumptionExpenses.replace('{amount}', formatShort(monthlyExpInput))}<br>
+            • ${t.assumptionNoVacancy}<br>
+            • ${t.assumptionSale}
+        `;
+        if (paymentMethod === 'leverage') {
+            assumptionsHTML += `<br>• ${t.assumptionMortgage}<br>• ${t.assumptionDownPayment}`;
+        }
+        document.getElementById('assumptions-text').innerHTML = assumptionsHTML;
+    }
+
+    function updateChart(yearlyData) {
+        const ctx = document.getElementById('chart').getContext('2d');
+        const t = translations[currentLang];
+        
+        if (chart) chart.destroy();
+
+        const labels = yearlyData.map(y => y.year);
+        const equityData = yearlyData.map(y => y.equity / 1e6);
+        const cashflowData = yearlyData.map(y => y.cumCashflow / 1e6);
+        const debtData = yearlyData.map(y => y.debt / 1e6);
+
+        const datasets = [
+            {
+                label: t.chartEquity,
+                data: equityData,
+                borderColor: '#0d9488',
+                backgroundColor: 'transparent',
+                fill: false,
+                tension: 0.3,
+                borderWidth: 2
+            },
+            {
+                label: t.chartCashFlow,
+                data: cashflowData,
+                borderColor: '#dc2626',
+                backgroundColor: 'transparent',
+                fill: false,
+                tension: 0.3,
+                borderWidth: 2
+            }
+        ];
+
+        const hasDebt = debtData.some(d => d > 0);
+        if (hasDebt) {
+            datasets.push({
+                label: t.chartDebt,
+                data: debtData,
+                borderColor: '#f59e0b',
+                backgroundColor: 'transparent',
+                fill: false,
+                tension: 0.3,
+                borderWidth: 2,
+                borderDash: [5, 5]
+            });
+        }
+
+        chart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: datasets
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                interaction: {
+                    intersect: false,
+                    mode: 'index'
+                },
+                plugins: {
+                    legend: {
+                        labels: { color: '#475467', font: { size: 11 } }
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                return context.dataset.label + ': $' + Math.round(context.raw) + 'M';
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    x: {
+                        title: {
+                            display: true,
+                            text: t.yearsAxis,
+                            color: '#667085'
+                        },
+                        ticks: { color: '#667085' },
+                        grid: { color: 'rgba(0,0,0,0.05)' }
+                    },
+                    y: {
+                        ticks: {
+                            color: '#667085',
+                            callback: function(value) {
+                                return Math.round(value);
+                            }
+                        },
+                        grid: { color: 'rgba(0,0,0,0.05)' }
+                    }
+                }
+            }
+        });
+    }
+
+    function attachLiveListeners() {
+        const inputs = document.querySelectorAll('input[type="number"], select');
+        inputs.forEach(input => {
+            input.addEventListener('input', runSimulation);
+            input.addEventListener('change', runSimulation);
+        });
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+        attachLiveListeners();
+        runSimulation();
+    });
+</script>
+```
+
+</body>
+</html>
