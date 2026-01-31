@@ -141,34 +141,20 @@
 
         @media print {
             * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
-            html, body { background: #fff !important; }
-            .fixed-header { display: none !important; }
-            .page-wrapper { min-height: auto !important; padding-bottom: 0 !important; }
-            .container { padding-top: 10px !important; max-width: 100% !important; width: 100% !important; }
-            .card { break-inside: avoid; box-shadow: none !important; border: 1px solid #d0d5dd !important; margin-bottom: 10px !important; }
-            .irr-card { background: linear-gradient(135deg, #0d9488, #0f766e) !important; color: #fff !important; }
-            .irr-card h2, .irr-card .irr-value, .irr-card .irr-subtitle { color: #fff !important; }
-            .pp-irr-card { background: linear-gradient(135deg, #7c3aed, #6d28d9) !important; color: #fff !important; }
-            .pp-irr-card h2, .pp-irr-card .irr-value, .pp-irr-card .irr-subtitle { color: #fff !important; opacity: 1 !important; }
-            #pp-irr-delta { color: #fff !important; opacity: 1 !important; }
-            .chart-container { height: 200px !important; break-inside: avoid; }
-            .net-rental-box { break-inside: avoid; }
-            .metrics-grid { break-inside: avoid; }
-            .section-divider { display: none !important; }
-            .hint { font-size: 0.65rem !important; }
-            table { font-size: 0.65rem !important; }
-            .assumptions { break-inside: avoid; }
-            #prepay-recommendation { break-inside: avoid; }
-            #prepay-summary { break-inside: avoid; }
-            /* Hide interactive controls */
-            .toggle-container { pointer-events: none; }
-            .autofill-row, .autofill-buttons { display: none !important; }
-            #manual-entries-wrapper { display: none !important; }
-            .btn-add { display: none !important; }
-            /* Print title */
-            h1.print-title { display: block !important; text-align: center; font-size: 1.3rem; color: #0d9488; margin-bottom: 12px; }
+            @page { margin: 10mm 12mm; }
+            .page-wrapper { display: none !important; }
+            #print-overlay { display: block !important; }
+            .p-page { page-break-after: always; }
+            .p-page:last-child { page-break-after: auto; }
+            .p-cols { display: flex; gap: 18px; }
+            .p-col { flex: 1; min-width: 0; }
+            #print-overlay table { width: 100%; border-collapse: collapse; }
+            #print-overlay th, #print-overlay td { padding: 3px 5px; border-bottom: 1px solid #e5e7eb; text-align: right; font-size: 0.65rem; }
+            #print-overlay th { color: #667085; font-weight: 500; font-size: 0.6rem; }
+            #print-overlay .cash-in { color: #0d9488; font-weight: 600; }
+            #print-overlay .cash-out { color: #dc2626; font-weight: 600; }
         }
-        h1.print-title { display: none; }
+        #print-overlay { display: none; }
     </style>
 </head>
 <body>
@@ -190,7 +176,6 @@
         </div>
 
         <div class="container">
-            <h1 class="print-title" data-i18n="title">Real Estate Simulator</h1>
             <!-- Property Details -->
             <div class="card" id="inputs-card">
                 <h2 data-i18n="propertyDetails">Property Details</h2>
@@ -1025,7 +1010,193 @@ document.addEventListener('DOMContentLoaded', () => {
 
 // === PDF DOWNLOAD ===
 function downloadPDF() {
-    window.print();
+    const t = translations[currentLang];
+    const $ = id => document.getElementById(id);
+    const txt = id => $(id)?.textContent || '--';
+    const val = id => $(id)?.value || '';
+
+    // Charts → images
+    const baseChartSrc = $('chart')?.toDataURL('image/png') || '';
+    const ppChartSrc = $('pp-chart')?.toDataURL('image/png') || '';
+
+    // Clone table HTML (strip IDs to avoid conflicts)
+    const baseTableHtml = ($('yearly-table')?.outerHTML || '').replace(/ id="[^"]*"/g, '');
+    const ppTableHtml = ($('pp-yearly-table')?.outerHTML || '').replace(/ id="[^"]*"/g, '');
+
+    // State
+    const hasPP = $('pp-results')?.style.display !== 'none';
+    const isLeverage = paymentMethod === 'leverage';
+
+    // Prepay state
+    const strategyText = document.querySelector('#prepayments-card .toggle-btn.active')?.textContent || '';
+    const recEl = $('prepay-recommendation');
+    const prepaySumEl = $('prepay-summary');
+
+    // Select texts
+    const rs = $('rental-start');
+    const rsText = rs?.options[rs.selectedIndex]?.text || '';
+    const hu = $('horizon-unit');
+    const huText = hu?.options[hu.selectedIndex]?.text || '';
+
+    // === HELPERS ===
+    const row = (label, value, hint) =>
+        '<div style="margin-bottom:8px;">' +
+            '<div style="font-size:0.7rem;color:#667085;margin-bottom:2px;">' + label + '</div>' +
+            '<div style="font-size:0.88rem;font-weight:500;color:#1a1a2e;">' + value + '</div>' +
+            (hint ? '<div style="font-size:0.6rem;color:#98a2b3;margin-top:1px;">' + hint + '</div>' : '') +
+        '</div>';
+
+    const hBox = (label, value, color) =>
+        '<div style="border:1.5px solid ' + color + ';border-radius:10px;padding:8px;text-align:center;margin:8px 0;">' +
+            '<div style="font-size:0.7rem;color:' + color + ';font-weight:500;">' + label + '</div>' +
+            '<div style="font-size:1rem;font-weight:700;color:' + color + ';">' + value + '</div>' +
+        '</div>';
+
+    const mBox = (label, value, type) => {
+        var c = type === 'pos' ? '#0d9488' : type === 'neg' ? '#dc2626' : '#1a1a2e';
+        return '<div style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:8px;padding:7px;text-align:center;">' +
+            '<div style="font-size:0.6rem;color:#667085;margin-bottom:2px;">' + label + '</div>' +
+            '<div style="font-size:0.82rem;font-weight:600;color:' + c + ';">' + value + '</div>' +
+        '</div>';
+    };
+
+    const irrBox = (value, subtitle, c1, c2, delta) =>
+        '<div style="background:linear-gradient(135deg,' + c1 + ',' + c2 + ');border-radius:14px;padding:16px;text-align:center;color:#fff;margin-bottom:12px;">' +
+            '<div style="font-size:0.78rem;font-weight:500;opacity:0.9;margin-bottom:6px;">' + t.irrTitle + '</div>' +
+            '<div style="font-size:1.7rem;font-weight:700;margin-bottom:3px;">' + value + '</div>' +
+            (delta || '') +
+            '<div style="font-size:0.65rem;opacity:0.85;">' + subtitle + '</div>' +
+        '</div>';
+
+    const crd = (title, content) =>
+        '<div style="background:#fff;border:1px solid #e5e7eb;border-radius:14px;padding:14px;margin-bottom:10px;">' +
+            '<div style="font-size:0.85rem;font-weight:600;color:#1a1a2e;margin-bottom:10px;">' + title + '</div>' +
+            content +
+        '</div>';
+
+    const mGrid = (items) =>
+        '<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;">' + items.join('') + '</div>';
+
+    // === PAGE 1: Property Details | Financing ===
+    var p1L = crd(t.propertyDetails,
+        row(t.propertyValue, val('property-value') + ' M') +
+        row(t.appreciation, val('appreciation') + '%', t.appreciationHint) +
+        row(t.rentalIncome, val('rental-income') + ' M', txt('rental-equivalent')) +
+        row(t.monthlyExpenses, val('monthly-expenses') + ' M', txt('expenses-equivalent')) +
+        hBox(t.netMonthlyRental, txt('net-rental-value'), '#0d9488') +
+        row(t.horizon, val('horizon') + ' ' + huText, t.horizonHint)
+    );
+
+    var p1R = '';
+    if (isLeverage) {
+        p1R = crd(t.financingStructure,
+            row(t.paymentMethod, t.leverage) +
+            row(t.downPaymentPct, val('down-payment-pct') + '%', t.downPaymentHint) +
+            row(t.downPaymentMonths, val('down-payment-months') + ' ' + t.months.toLowerCase(), t.downPaymentMonthsHint) +
+            row(t.mortgageRate, val('mortgage-rate') + '%', t.mortgageRateHint) +
+            row(t.mortgageTerm, val('mortgage-term') + ' ' + t.years.toLowerCase()) +
+            hBox(t.monthlyMortgage, txt('monthly-mortgage-value'), '#dc2626') +
+            row(t.rentalStart, rsText)
+        );
+    } else {
+        p1R = crd(t.financingStructure, row(t.paymentMethod, t.cash));
+    }
+
+    // === PAGE 2: Base IRR + Summary | Chart ===
+    var p2L = irrBox(txt('irr-value'), t.irrSubtitle, '#0d9488', '#0f766e') +
+        crd(t.investmentSummary, mGrid([
+            mBox(txt('total-invested-label'), txt('total-invested'), ''),
+            mBox(t.finalPropertyValue, txt('final-property-value'), ''),
+            mBox(t.totalRentalGross, txt('total-rental'), 'pos'),
+            mBox(t.totalExpenses, txt('total-expenses'), 'neg'),
+            mBox(t.totalInterest, txt('total-interest'), 'neg'),
+            mBox(t.netProceeds, txt('net-proceeds'), ''),
+            mBox(t.totalProfit, txt('total-profit'), 'pos'),
+            mBox(t.moic, txt('moic'), 'pos'),
+        ]));
+
+    var p2R = '<div style="padding-top:8px;">' +
+        '<div style="font-size:0.85rem;font-weight:600;color:#1a1a2e;margin-bottom:10px;">' + t.chartTitle + '</div>' +
+        '<img src="' + baseChartSrc + '" style="width:100%;border-radius:8px;">' +
+        '</div>';
+
+    // === PAGE 3: Base Yearly Table (full width) ===
+    var p3 = '<div style="font-size:0.85rem;font-weight:600;color:#1a1a2e;margin-bottom:6px;">' + t.yearlyBreakdown + '</div>' +
+        '<div style="font-size:0.6rem;color:#98a2b3;margin-bottom:6px;">' + t.tableNote + '</div>' +
+        baseTableHtml;
+
+    // === PAGES 4-5 (prepayments, if active) ===
+    var ppPages = '';
+    if (hasPP) {
+        // Page 4 left: Prepayments collapsed
+        var ppContent = row(t.prepayStrategy, strategyText);
+        if (recEl && recEl.style.display !== 'none' && recEl.textContent) {
+            ppContent += '<div style="padding:8px 10px;border-radius:8px;font-size:0.7rem;margin:8px 0;line-height:1.4;' +
+                'background:' + recEl.style.background + ';border:' + recEl.style.border + ';color:' + recEl.style.color + ';">' +
+                recEl.textContent + '</div>';
+        }
+        if (prepaySumEl && prepaySumEl.style.display !== 'none' && prepaySumEl.textContent) {
+            ppContent += '<div style="padding:6px 10px;background:#f0fdfa;border:1px solid #0d9488;border-radius:8px;font-size:0.7rem;color:#0d9488;font-weight:500;margin-top:6px;">' +
+                prepaySumEl.textContent + '</div>';
+        }
+        var afAmt = val('autofill-amount');
+        var afFreq = val('autofill-frequency');
+        if (afAmt && afFreq) {
+            ppContent += '<div style="font-size:0.7rem;color:#667085;margin-top:8px;">Config: $' + afAmt + 'M ' + t.prepayEvery2 + ' ' + afFreq + ' ' + t.prepayEvery3 + '</div>';
+        }
+        var p4L = crd(t.prepayTitle, ppContent);
+
+        // Page 4 right: PP IRR + Summary
+        var ppDelta = $('pp-irr-delta');
+        var deltaHtml = (ppDelta && ppDelta.style.display !== 'none')
+            ? '<div style="font-size:0.78rem;margin-bottom:3px;">' + ppDelta.innerHTML + '</div>' : '';
+        var p4R = irrBox(txt('pp-irr-value'), t.irrSubtitle, '#7c3aed', '#6d28d9', deltaHtml) +
+            crd(t.investmentSummary, mGrid([
+                mBox(t.totalInterest, txt('pp-total-interest'), 'neg'),
+                mBox(t.interestSaved, txt('interest-saved'), 'pos'),
+                mBox(txt('time-saved-label'), txt('time-saved'), 'pos'),
+                mBox(t.netProceeds, txt('pp-net-proceeds'), ''),
+                mBox(t.totalProfit, txt('pp-total-profit'), 'pos'),
+                mBox(t.moic, txt('pp-moic'), 'pos'),
+            ]));
+
+        // Page 5 left: PP table
+        var p5L = '<div style="font-size:0.85rem;font-weight:600;color:#7c3aed;margin-bottom:6px;">' + t.yearlyBreakdown + '</div>' +
+            '<div style="font-size:0.6rem;color:#98a2b3;margin-bottom:6px;">' + t.tableNote + '</div>' +
+            ppTableHtml;
+
+        // Page 5 right: PP chart
+        var p5R = '<div style="padding-top:8px;">' +
+            '<div style="font-size:0.85rem;font-weight:600;color:#7c3aed;margin-bottom:10px;">' + t.chartTitle + '</div>' +
+            '<img src="' + ppChartSrc + '" style="width:100%;border-radius:8px;">' +
+            '</div>';
+
+        ppPages =
+            '<div class="p-page"><div class="p-cols"><div class="p-col">' + p4L + '</div><div class="p-col">' + p4R + '</div></div></div>' +
+            '<div class="p-page"><div class="p-cols"><div class="p-col">' + p5L + '</div><div class="p-col">' + p5R + '</div></div></div>';
+    }
+
+    // === BUILD OVERLAY ===
+    var overlay = document.createElement('div');
+    overlay.id = 'print-overlay';
+    overlay.innerHTML =
+        '<div class="p-page">' +
+            '<div style="text-align:center;font-size:1.1rem;font-weight:700;color:#0d9488;margin-bottom:14px;">' + t.title + '</div>' +
+            '<div class="p-cols"><div class="p-col">' + p1L + '</div><div class="p-col">' + p1R + '</div></div>' +
+        '</div>' +
+        '<div class="p-page"><div class="p-cols"><div class="p-col">' + p2L + '</div><div class="p-col">' + p2R + '</div></div></div>' +
+        '<div class="p-page">' + p3 + '</div>' +
+        ppPages;
+
+    document.body.appendChild(overlay);
+    window.addEventListener('afterprint', function cleanup() {
+        overlay.remove();
+        window.removeEventListener('afterprint', cleanup);
+    });
+    // Fallback removal for browsers where afterprint doesn't fire
+    var fallbackId = setTimeout(function() { if (document.getElementById('print-overlay')) overlay.remove(); }, 5000);
+    window.addEventListener('afterprint', function() { clearTimeout(fallbackId); }, { once: true });
+    setTimeout(function() { window.print(); }, 150);
 }
 </script>
 </body>
