@@ -1,5 +1,3 @@
-
-
 <!DOCTYPE html>
 
 <html lang="en">
@@ -7,6 +5,14 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <title>Real Estate Investment Simulator</title>
+    <!-- Google Analytics -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-D4DKSX4DBE"></script>
+    <script>
+        window.dataLayer = window.dataLayer || [];
+        function gtag(){dataLayer.push(arguments);}
+        gtag('js', new Date());
+        gtag('config', 'G-D4DKSX4DBE');
+    </script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         * {
@@ -324,195 +330,194 @@
             </div>
         </div>
 
-```
-    <div class="container">
-        <!-- Property Details -->
-        <div class="card" id="inputs-card">
-            <h2 data-i18n="propertyDetails">Property Details</h2>
-            
-            <div class="input-group">
-                <label data-i18n="propertyValue">Property Value Today (millions)</label>
-                <div class="input-suffix">
-                    <input type="number" id="property-value" placeholder="500" step="any">
-                    <span class="suffix">M</span>
-                </div>
-            </div>
-
-            <div class="input-group">
-                <label data-i18n="appreciation">Expected Annual Appreciation (%)</label>
-                <input type="number" id="appreciation" placeholder="e.g., 6" value="6" step="0.1">
-                <p class="hint" data-i18n="appreciationHint">Historical avg: 3-7% depending on market</p>
-            </div>
-
-            <div class="input-group">
-                <label data-i18n="rentalIncome">Monthly Rental Income (millions)</label>
-                <div class="input-suffix">
-                    <input type="number" id="rental-income" placeholder="2.0" value="2.0" step="0.1">
-                    <span class="suffix">M</span>
-                </div>
-                <p class="equivalent" id="rental-equivalent"></p>
-            </div>
-
-            <div class="input-group">
-                <label data-i18n="monthlyExpenses">Monthly Expenses (millions)</label>
-                <div class="input-suffix">
-                    <input type="number" id="monthly-expenses" placeholder="0.8" value="0.8" step="0.1">
-                    <span class="suffix">M</span>
-                </div>
-                <p class="equivalent negative" id="expenses-equivalent"></p>
-            </div>
-
-            <div class="net-rental-box">
-                <div class="net-rental-label" data-i18n="netMonthlyRental">Net Monthly Rental</div>
-                <div class="net-rental-value" id="net-rental-value">--</div>
-            </div>
-
-            <div class="input-group" style="margin-top: 14px;">
-                <label data-i18n="horizon">Investment Horizon</label>
-                <div class="input-row">
-                    <input type="number" id="horizon" placeholder="e.g., 10" value="10" step="1">
-                    <select id="horizon-unit">
-                        <option value="years" data-i18n="years">Years</option>
-                        <option value="months" data-i18n="months">Months</option>
-                    </select>
-                </div>
-            </div>
-        </div>
-
-        <!-- Financing -->
-        <div class="card" id="financing-card">
-            <h2 data-i18n="financingStructure">Financing Structure</h2>
-            
-            <div class="input-group">
-                <label data-i18n="paymentMethod">Payment Method</label>
-                <div class="toggle-container">
-                    <button class="toggle-btn active" data-method="leverage" onclick="setPaymentMethod('leverage')" data-i18n="leverage">Leverage</button>
-                    <button class="toggle-btn" data-method="cash" onclick="setPaymentMethod('cash')" data-i18n="cash">100% Cash</button>
-                </div>
-            </div>
-
-            <div id="leverage-section" class="leverage-details">
+        <div class="container">
+            <!-- Property Details -->
+            <div class="card" id="inputs-card">
+                <h2 data-i18n="propertyDetails">Property Details</h2>
+                
                 <div class="input-group">
-                    <label data-i18n="downPaymentPct">Down Payment (%)</label>
-                    <input type="number" id="down-payment-pct" placeholder="e.g., 30" value="30" min="10" max="100" step="1">
-                    <p class="hint" data-i18n="downPaymentHint">Typical minimum: 20-30%</p>
+                    <label data-i18n="propertyValue">Property Value Today (millions)</label>
+                    <div class="input-suffix">
+                        <input type="number" id="property-value" placeholder="500" step="any">
+                        <span class="suffix">M</span>
+                    </div>
                 </div>
 
                 <div class="input-group">
-                    <label data-i18n="downPaymentMonths">Down Payment Period (months)</label>
-                    <input type="number" id="down-payment-months" placeholder="e.g., 24" value="24" min="1" max="60" step="1">
-                    <p class="hint" data-i18n="downPaymentMonthsHint">Time to pay down payment in installments (0% interest)</p>
+                    <label data-i18n="appreciation">Expected Annual Appreciation (%)</label>
+                    <input type="number" id="appreciation" placeholder="e.g., 6" value="6" step="0.1">
+                    <p class="hint" data-i18n="appreciationHint">Historical avg: 3-7% depending on market</p>
                 </div>
 
                 <div class="input-group">
-                    <label data-i18n="mortgageRate">Mortgage Interest Rate (% annual)</label>
-                    <input type="number" id="mortgage-rate" placeholder="e.g., 12" value="12" step="0.1">
-                    <p class="hint" data-i18n="mortgageRateHint">Current rates vary by country/bank</p>
+                    <label data-i18n="rentalIncome">Monthly Rental Income (millions)</label>
+                    <div class="input-suffix">
+                        <input type="number" id="rental-income" placeholder="2.0" value="2.0" step="0.1">
+                        <span class="suffix">M</span>
+                    </div>
+                    <p class="equivalent" id="rental-equivalent"></p>
                 </div>
 
                 <div class="input-group">
-                    <label data-i18n="mortgageTerm">Mortgage Term (years)</label>
-                    <input type="number" id="mortgage-term" placeholder="e.g., 15" value="15" min="1" max="30" step="1">
+                    <label data-i18n="monthlyExpenses">Monthly Expenses (millions)</label>
+                    <div class="input-suffix">
+                        <input type="number" id="monthly-expenses" placeholder="0.8" value="0.8" step="0.1">
+                        <span class="suffix">M</span>
+                    </div>
+                    <p class="equivalent negative" id="expenses-equivalent"></p>
                 </div>
 
+                <div class="net-rental-box">
+                    <div class="net-rental-label" data-i18n="netMonthlyRental">Net Monthly Rental</div>
+                    <div class="net-rental-value" id="net-rental-value">--</div>
+                </div>
+
+                <div class="input-group" style="margin-top: 14px;">
+                    <label data-i18n="horizon">Investment Horizon</label>
+                    <div class="input-row">
+                        <input type="number" id="horizon" placeholder="e.g., 10" value="10" step="1">
+                        <select id="horizon-unit">
+                            <option value="years" data-i18n="years">Years</option>
+                            <option value="months" data-i18n="months">Months</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Financing -->
+            <div class="card" id="financing-card">
+                <h2 data-i18n="financingStructure">Financing Structure</h2>
+                
                 <div class="input-group">
-                    <label data-i18n="rentalStart">When does rental income start?</label>
-                    <select id="rental-start">
-                        <option value="after-dp" data-i18n="afterDelivery">After down payment period (delivery)</option>
-                        <option value="immediate" data-i18n="immediate">Immediately (existing property)</option>
-                    </select>
+                    <label data-i18n="paymentMethod">Payment Method</label>
+                    <div class="toggle-container">
+                        <button class="toggle-btn active" data-method="leverage" onclick="setPaymentMethod('leverage')" data-i18n="leverage">Leverage</button>
+                        <button class="toggle-btn" data-method="cash" onclick="setPaymentMethod('cash')" data-i18n="cash">100% Cash</button>
+                    </div>
                 </div>
-            </div>
-        </div>
 
-        <!-- Results Section -->
-        <div class="section-divider"></div>
+                <div id="leverage-section" class="leverage-details">
+                    <div class="input-group">
+                        <label data-i18n="downPaymentPct">Down Payment (%)</label>
+                        <input type="number" id="down-payment-pct" placeholder="e.g., 30" value="30" min="10" max="100" step="1">
+                        <p class="hint" data-i18n="downPaymentHint">Typical minimum: 20-30%</p>
+                    </div>
 
-        <div class="results-section" id="results">
-            <!-- IRR Hero -->
-            <div class="card irr-card" id="irr-card">
-                <h2 data-i18n="irrTitle">Internal Rate of Return (IRR)</h2>
-                <div class="irr-value" id="irr-value">--</div>
-                <div class="irr-subtitle" data-i18n="irrSubtitle">Annualized return on your cash invested</div>
-            </div>
+                    <div class="input-group">
+                        <label data-i18n="downPaymentMonths">Down Payment Period (months)</label>
+                        <input type="number" id="down-payment-months" placeholder="e.g., 24" value="24" min="1" max="60" step="1">
+                        <p class="hint" data-i18n="downPaymentMonthsHint">Time to pay down payment in installments (0% interest)</p>
+                    </div>
 
-            <!-- Key Metrics -->
-            <div class="card" id="summary-card">
-                <h2 data-i18n="investmentSummary">Investment Summary</h2>
-                <div class="metrics-grid">
-                    <div class="metric-box">
-                        <div class="metric-label" data-i18n="totalInvested">Total Cash Invested</div>
-                        <div class="metric-value" id="total-invested">--</div>
+                    <div class="input-group">
+                        <label data-i18n="mortgageRate">Mortgage Interest Rate (% annual)</label>
+                        <input type="number" id="mortgage-rate" placeholder="e.g., 12" value="12" step="0.1">
+                        <p class="hint" data-i18n="mortgageRateHint">Current rates vary by country/bank</p>
                     </div>
-                    <div class="metric-box">
-                        <div class="metric-label" data-i18n="finalPropertyValue">Final Property Value</div>
-                        <div class="metric-value" id="final-property-value">--</div>
+
+                    <div class="input-group">
+                        <label data-i18n="mortgageTerm">Mortgage Term (years)</label>
+                        <input type="number" id="mortgage-term" placeholder="e.g., 15" value="15" min="1" max="30" step="1">
                     </div>
-                    <div class="metric-box">
-                        <div class="metric-label" data-i18n="totalRentalGross">Total Rental (Gross)</div>
-                        <div class="metric-value positive" id="total-rental">--</div>
-                    </div>
-                    <div class="metric-box">
-                        <div class="metric-label" data-i18n="totalExpenses">Total Expenses</div>
-                        <div class="metric-value negative" id="total-expenses">--</div>
-                    </div>
-                    <div class="metric-box">
-                        <div class="metric-label" data-i18n="totalInterest">Total Interest Paid</div>
-                        <div class="metric-value negative" id="total-interest">--</div>
-                    </div>
-                    <div class="metric-box">
-                        <div class="metric-label" data-i18n="netProceeds">Net Proceeds at Sale</div>
-                        <div class="metric-value" id="net-proceeds">--</div>
-                    </div>
-                    <div class="metric-box">
-                        <div class="metric-label" data-i18n="totalProfit">Total Profit</div>
-                        <div class="metric-value positive" id="total-profit">--</div>
-                    </div>
-                    <div class="metric-box">
-                        <div class="metric-label" data-i18n="moic">Return Multiple (MOIC)</div>
-                        <div class="metric-value positive" id="moic">--</div>
+
+                    <div class="input-group">
+                        <label data-i18n="rentalStart">When does rental income start?</label>
+                        <select id="rental-start">
+                            <option value="after-dp" data-i18n="afterDelivery">After down payment period (delivery)</option>
+                            <option value="immediate" data-i18n="immediate">Immediately (existing property)</option>
+                        </select>
                     </div>
                 </div>
             </div>
 
-            <!-- Chart -->
-            <div class="card" id="chart-card">
-                <h2 data-i18n="chartTitle">Equity, Cash Flow & Debt</h2>
-                <div class="chart-container">
-                    <canvas id="chart"></canvas>
-                </div>
-            </div>
+            <!-- Results Section -->
+            <div class="section-divider"></div>
 
-            <!-- Yearly Breakdown -->
-            <div class="card" id="table-card">
-                <h2 data-i18n="yearlyBreakdown">Yearly Breakdown</h2>
-                <p class="table-note" data-i18n="tableNote">Numbers in $ millions</p>
-                <div class="table-container">
-                    <table id="yearly-table">
-                        <thead>
-                            <tr>
-                                <th data-i18n="thYear">Year</th>
-                                <th data-i18n="thPropertyValue">Value</th>
-                                <th data-i18n="thEquity">Equity</th>
-                                <th data-i18n="thDebt">Debt</th>
-                                <th data-i18n="thInflows">Inflows</th>
-                                <th data-i18n="thOutflows">Outflows</th>
-                                <th data-i18n="thCumCashFlow">Cum. CF</th>
-                            </tr>
-                        </thead>
-                        <tbody></tbody>
-                    </table>
+            <div class="results-section" id="results">
+                <!-- IRR Hero -->
+                <div class="card irr-card" id="irr-card">
+                    <h2 data-i18n="irrTitle">Internal Rate of Return (IRR)</h2>
+                    <div class="irr-value" id="irr-value">--</div>
+                    <div class="irr-subtitle" data-i18n="irrSubtitle">Annualized return on your cash invested</div>
                 </div>
-            </div>
 
-            <!-- Assumptions -->
-            <div class="card" id="assumptions-card">
-                <h2 data-i18n="assumptionsTitle">Assumptions</h2>
-                <div class="assumptions" id="assumptions-text"></div>
+                <!-- Key Metrics -->
+                <div class="card" id="summary-card">
+                    <h2 data-i18n="investmentSummary">Investment Summary</h2>
+                    <div class="metrics-grid">
+                        <div class="metric-box">
+                            <div class="metric-label" id="total-invested-label">Down Payment</div>
+                            <div class="metric-value" id="total-invested">--</div>
+                        </div>
+                        <div class="metric-box">
+                            <div class="metric-label" data-i18n="finalPropertyValue">Final Property Value</div>
+                            <div class="metric-value" id="final-property-value">--</div>
+                        </div>
+                        <div class="metric-box">
+                            <div class="metric-label" data-i18n="totalRentalGross">Total Rental (Gross)</div>
+                            <div class="metric-value positive" id="total-rental">--</div>
+                        </div>
+                        <div class="metric-box">
+                            <div class="metric-label" data-i18n="totalExpenses">Total Expenses</div>
+                            <div class="metric-value negative" id="total-expenses">--</div>
+                        </div>
+                        <div class="metric-box">
+                            <div class="metric-label" data-i18n="totalInterest">Total Interest Paid</div>
+                            <div class="metric-value negative" id="total-interest">--</div>
+                        </div>
+                        <div class="metric-box">
+                            <div class="metric-label" data-i18n="netProceeds">Net Proceeds at Sale</div>
+                            <div class="metric-value" id="net-proceeds">--</div>
+                        </div>
+                        <div class="metric-box">
+                            <div class="metric-label" data-i18n="totalProfit">Total Profit</div>
+                            <div class="metric-value positive" id="total-profit">--</div>
+                        </div>
+                        <div class="metric-box">
+                            <div class="metric-label" data-i18n="moic">Return Multiple (MOIC)</div>
+                            <div class="metric-value positive" id="moic">--</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Chart -->
+                <div class="card" id="chart-card">
+                    <h2 data-i18n="chartTitle">Equity, Cash Flow & Debt</h2>
+                    <div class="chart-container">
+                        <canvas id="chart"></canvas>
+                    </div>
+                </div>
+
+                <!-- Yearly Breakdown -->
+                <div class="card" id="table-card">
+                    <h2 data-i18n="yearlyBreakdown">Yearly Breakdown</h2>
+                    <p class="table-note" data-i18n="tableNote">Numbers in $ millions</p>
+                    <div class="table-container">
+                        <table id="yearly-table">
+                            <thead>
+                                <tr>
+                                    <th data-i18n="thYear">Year</th>
+                                    <th data-i18n="thPropertyValue">Value</th>
+                                    <th data-i18n="thEquity">Equity</th>
+                                    <th data-i18n="thDebt">Debt</th>
+                                    <th data-i18n="thInflows">Inflows</th>
+                                    <th data-i18n="thOutflows">Outflows</th>
+                                    <th data-i18n="thCumCashFlow">Cum. CF</th>
+                                </tr>
+                            </thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Assumptions -->
+                <div class="card" id="assumptions-card">
+                    <h2 data-i18n="assumptionsTitle">Assumptions</h2>
+                    <div class="assumptions" id="assumptions-text"></div>
+                </div>
             </div>
         </div>
     </div>
-</div>
 
 <script>
     let paymentMethod = 'leverage';
@@ -553,7 +558,8 @@
             irrTitle: "Internal Rate of Return (IRR)",
             irrSubtitle: "Annualized return on your cash invested",
             investmentSummary: "Investment Summary",
-            totalInvested: "Total Cash Invested",
+            totalInvestedLeverage: "Down Payment",
+            totalInvestedCash: "Purchase Price",
             finalPropertyValue: "Final Property Value",
             totalRentalGross: "Total Rental (Gross)",
             totalExpenses: "Total Expenses",
@@ -616,7 +622,8 @@
             irrTitle: "Tasa Interna de Retorno (TIR)",
             irrSubtitle: "Retorno anualizado sobre el efectivo invertido",
             investmentSummary: "Resumen de Inversión",
-            totalInvested: "Total Efectivo Invertido",
+            totalInvestedLeverage: "Cuota Inicial",
+            totalInvestedCash: "Precio de Compra",
             finalPropertyValue: "Valor Final del Inmueble",
             totalRentalGross: "Total Arriendo (Bruto)",
             totalExpenses: "Total Gastos",
@@ -806,9 +813,17 @@
         simulateTimeout = setTimeout(simulate, 100);
     }
 
+    function updateInvestedLabel() {
+        const t = translations[currentLang];
+        const label = document.getElementById('total-invested-label');
+        label.textContent = paymentMethod === 'leverage' ? t.totalInvestedLeverage : t.totalInvestedCash;
+    }
+
     function simulate() {
         const t = translations[currentLang];
         
+        updateInvestedLabel();
+
         const propertyValue = getPropertyValue();
         const appreciationRate = (parseFloat(document.getElementById('appreciation').value) || 0) / 100;
         const monthlyRentInput = (parseFloat(document.getElementById('rental-income').value) || 0) * 1000000;
@@ -1119,7 +1134,6 @@
         runSimulation();
     });
 </script>
-```
 
 </body>
 </html>
