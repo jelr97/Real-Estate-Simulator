@@ -163,10 +163,10 @@
             <div class="fixed-header-inner">
                 <div class="top-controls">
                     <div class="lang-toggle">
-                        <button class="lang-btn active" onclick="setLanguage('en')">English</button>
-                        <button class="lang-btn" onclick="setLanguage('es')">Español</button>
+                        <button class="lang-btn active" onclick="setLanguage('es')">Español</button>
+                        <button class="lang-btn" onclick="setLanguage('en')">English</button>
                     </div>
-                    <button class="btn-pdf" id="btn-pdf" onclick="downloadPDF()">
+                    <button class="btn-pdf" id="btn-pdf" onclick="downloadPDF()" style="display:none;">
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
                         PDF
                     </button>
@@ -402,7 +402,7 @@ let paymentMethod = 'leverage';
 let prepayStrategy = 'reduce-time';
 let baseChart = null;
 let ppChart = null;
-let currentLang = 'en';
+let currentLang = 'es';
 let simulateTimeout = null;
 let prepaymentEntries = [];
 let entryIdCounter = 0;
@@ -689,10 +689,12 @@ function updEntry(id, field, val) {
     const e = prepaymentEntries.find(x => x.id === id);
     if (e) { e[field] = val; runSimulation(); }
 }
+let hasGenerated = false;
 function autoFillPrepayments() {
     const amt = parseFloat(document.getElementById('autofill-amount').value)||0;
     const freq = parseInt(document.getElementById('autofill-frequency').value)||12;
     if (amt <= 0 || freq <= 0) return;
+    hasGenerated = true;
     const dpM = parseInt(document.getElementById('down-payment-months').value)||24;
     const h = parseFloat(document.getElementById('horizon').value)||10;
     const hu = document.getElementById('horizon-unit').value;
@@ -705,6 +707,7 @@ function autoFillPrepayments() {
 }
 function clearPrepayments() {
     prepaymentEntries = []; entryIdCounter = 0;
+    hasGenerated = false;
     renderPrepaymentEntries();
     runSimulation();
 }
@@ -1004,6 +1007,13 @@ document.addEventListener('DOMContentLoaded', () => {
     document.querySelectorAll('input[type="number"], select').forEach(el => {
         el.addEventListener('input', runSimulation);
         el.addEventListener('change', runSimulation);
+    });
+    // Auto-regenerate prepayments when amount/frequency change (after first Generate)
+    ['autofill-amount', 'autofill-frequency'].forEach(id => {
+        const el = document.getElementById(id);
+        const handler = () => { if (hasGenerated) autoFillPrepayments(); };
+        el.addEventListener('input', handler);
+        el.addEventListener('change', handler);
     });
     runSimulation();
 });
