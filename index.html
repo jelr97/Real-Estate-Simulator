@@ -114,7 +114,6 @@
         .net-rental-label { font-size: 0.75rem; color: #0d9488; }
         .net-rental-value { font-size: 1rem; font-weight: 600; color: #0d9488; }
 
-```
     /* Prepayment styles */
     .prepay-entry { display: flex; gap: 8px; align-items: center; margin-bottom: 8px; }
     .prepay-entry input { flex: 1; padding: 10px; font-size: 0.9rem; }
@@ -160,7 +159,6 @@
     }
     #print-overlay { display: none; }
 </style>
-```
 
 </head>
 <body>
@@ -172,7 +170,7 @@
                         <button class="lang-btn active" onclick="setLanguage('es')">Español</button>
                         <button class="lang-btn" onclick="setLanguage('en')">English</button>
                     </div>
-                    <button class="btn-pdf" id="btn-pdf" onclick="downloadPDF()" style="display:none;">
+                    <button class="btn-pdf" id="btn-pdf" onclick="downloadPDF()">
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
                         PDF
                     </button>
@@ -181,7 +179,6 @@
             </div>
         </div>
 
-```
     <div class="container">
         <!-- Property Details -->
         <div class="card" id="inputs-card">
@@ -403,7 +400,6 @@
         </div>
     </div>
 </div>
-```
 
 <script>
 let paymentMethod = 'leverage';
