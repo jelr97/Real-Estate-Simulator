@@ -167,8 +167,8 @@
             <div class="fixed-header-inner">
                 <div class="top-controls">
                     <div class="lang-toggle">
-                        <button class="lang-btn active" onclick="setLanguage('es')">Español</button>
-                        <button class="lang-btn" onclick="setLanguage('en')">English</button>
+                        <button class="lang-btn active" data-lang="es" onclick="setLanguage('es')">Español</button>
+                        <button class="lang-btn" data-lang="en" onclick="setLanguage('en')">English</button>
                     </div>
                     <button class="btn-pdf" id="btn-pdf" onclick="downloadPDF()">
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
@@ -641,7 +641,7 @@ function updateEquivalents() {
 // === UI CONTROLS ===
 function setLanguage(lang) {
     currentLang = lang;
-    document.querySelectorAll('.lang-btn').forEach(b => b.classList.toggle('active', b.textContent.toLowerCase().includes(lang==='en'?'english':'español')));
+    document.querySelectorAll('.lang-btn').forEach(b => b.classList.toggle('active', b.dataset.lang===lang));
     document.querySelectorAll('[data-i18n]').forEach(el => { const k=el.getAttribute('data-i18n'); if(translations[lang][k]) el.textContent=translations[lang][k]; });
     document.querySelectorAll('select option[data-i18n]').forEach(el => { const k=el.getAttribute('data-i18n'); if(translations[lang][k]) el.textContent=translations[lang][k]; });
     renderPrepaymentEntries();
