@@ -583,21 +583,70 @@ function calcPMT(principal, annualRate, months) {
     if (r === 0) return principal / months;
     return principal * (r * Math.pow(1 + r, months)) / (Math.pow(1 + r, months) - 1);
 }
+function calcNPV(cf, rate) {
+    let npv = 0;
+    for (let t = 0; t < cf.length; t++) {
+        npv += cf[t] / Math.pow(1 + rate, t);
+    }
+    return npv;
+}
+function hasIRRSignChange(cf) {
+    let hasPositive = false;
+    let hasNegative = false;
+    for (const v of cf) {
+        if (v > 0) hasPositive = true;
+        if (v < 0) hasNegative = true;
+        if (hasPositive && hasNegative) return true;
+    }
+    return false;
+}
+function solveIRRByBisection(cf, low, high) {
+    let left = low;
+    let right = high;
+    let npvLeft = calcNPV(cf, left);
+    let npvRight = calcNPV(cf, right);
+    if (!Number.isFinite(npvLeft) || !Number.isFinite(npvRight) || npvLeft * npvRight > 0) return NaN;
+    for (let i = 0; i < 200; i++) {
+        const mid = (left + right) / 2;
+        const npvMid = calcNPV(cf, mid);
+        if (!Number.isFinite(npvMid)) return NaN;
+        if (Math.abs(npvMid) < 1e-7 || Math.abs(right - left) < 1e-7) return mid;
+        if (npvLeft * npvMid <= 0) {
+            right = mid;
+            npvRight = npvMid;
+        } else {
+            left = mid;
+            npvLeft = npvMid;
+        }
+    }
+    return (left + right) / 2;
+}
 function calcIRR(cf, guess) {
-    let rate = guess || 0.01;
+    if (!Array.isArray(cf) || cf.length === 0 || !hasIRRSignChange(cf)) return NaN;
+    let rate = Number.isFinite(guess) ? guess : 0.01;
     for (let i = 0; i < 1000; i++) {
-        let npv = 0, dnpv = 0;
+        let npv = 0;
+        let dnpv = 0;
         for (let t = 0; t < cf.length; t++) {
             npv += cf[t] / Math.pow(1 + rate, t);
             dnpv -= t * cf[t] / Math.pow(1 + rate, t + 1);
         }
+        if (!Number.isFinite(npv) || !Number.isFinite(dnpv) || Math.abs(dnpv) < 1e-12) break;
         const nr = rate - npv / dnpv;
+        if (!Number.isFinite(nr) || nr <= -0.9999 || nr > 10) break;
         if (Math.abs(nr - rate) < 1e-7) return nr;
         rate = nr;
-        if (rate < -0.99) rate = -0.99;
-        if (rate > 10) rate = 10;
     }
-    return rate;
+    const bounds = [[-0.99, 0.5], [-0.99, 1], [-0.99, 2], [-0.99, 5], [-0.99, 10]];
+    for (const [low, high] of bounds) {
+        const npvLow = calcNPV(cf, low);
+        const npvHigh = calcNPV(cf, high);
+        if (!Number.isFinite(npvLow) || !Number.isFinite(npvHigh)) continue;
+        if (npvLow === 0) return low;
+        if (npvHigh === 0) return high;
+        if (npvLow * npvHigh < 0) return solveIRRByBisection(cf, low, high);
+    }
+    return NaN;
 }
 function updateEquivalents() {
     const pv = getPropertyValue();
