@@ -508,9 +508,9 @@ const translations = {
         yearsLabel: "years",
         totalPrepaid: "Total prepaid",
         ofDebt: "of debt",
-        prepayRecommendPositive: "▲ Prepayments will likely increase your IRR. Your mortgage rate ({mortgageRate}%) is higher than your base IRR ({baseIRR}%), so every dollar prepaid earns a higher effective return than your overall investment.",
-        prepayRecommendNegative: "▼ Prepayments will likely decrease your IRR. Your mortgage rate ({mortgageRate}%) is lower than your base IRR ({baseIRR}%), so prepaid dollars earn less than your overall investment. You still save on total interest paid, but you may get better returns deploying that cash elsewhere.",
-        prepayRecommendNeutral: "Your mortgage rate ({mortgageRate}%) is roughly equal to your base IRR ({baseIRR}%), so prepayments will have minimal impact on your percentage returns."
+        prepayRecommendPositive: "▲ Prepayments will likely increase your IRR. Your avg mortgage rate ({mortgageRate}%) is higher than your base IRR ({baseIRR}%), so every dollar prepaid earns a higher effective return than your overall investment.",
+        prepayRecommendNegative: "▼ Prepayments will likely decrease your IRR. Your avg mortgage rate ({mortgageRate}%) is lower than your base IRR ({baseIRR}%), so prepaid dollars earn less than your overall investment. You still save on total interest paid, but you may get better returns deploying that cash elsewhere.",
+        prepayRecommendNeutral: "Your avg mortgage rate ({mortgageRate}%) is roughly equal to your base IRR ({baseIRR}%), so prepayments will have minimal impact on your percentage returns."
     },
     es: {
         title: "Simulador Inmobiliario",
@@ -599,9 +599,9 @@ const translations = {
         yearsLabel: "años",
         totalPrepaid: "Total abonado",
         ofDebt: "de la deuda",
-        prepayRecommendPositive: "▲ Los abonos probablemente aumentarán tu TIR. Tu tasa hipotecaria ({mortgageRate}%) es mayor que tu TIR base ({baseIRR}%), así que cada peso abonado genera un retorno efectivo mayor que tu inversión general.",
-        prepayRecommendNegative: "▼ Los abonos probablemente reducirán tu TIR. Tu tasa hipotecaria ({mortgageRate}%) es menor que tu TIR base ({baseIRR}%), así que los abonos rinden menos que tu inversión general. Aún ahorras en intereses totales, pero podrías obtener mejores retornos invirtiendo ese capital en otro lado.",
-        prepayRecommendNeutral: "Tu tasa hipotecaria ({mortgageRate}%) es similar a tu TIR base ({baseIRR}%), así que los abonos tendrán un impacto mínimo en tu retorno porcentual."
+        prepayRecommendPositive: "▲ Los abonos probablemente aumentarán tu TIR. Tu tasa hipotecaria promedio ({mortgageRate}%) es mayor que tu TIR base ({baseIRR}%), así que cada peso abonado genera un retorno efectivo mayor que tu inversión general.",
+        prepayRecommendNegative: "▼ Los abonos probablemente reducirán tu TIR. Tu tasa hipotecaria promedio ({mortgageRate}%) es menor que tu TIR base ({baseIRR}%), así que los abonos rinden menos que tu inversión general. Aún ahorras en intereses totales, pero podrías obtener mejores retornos invirtiendo ese capital en otro lado.",
+        prepayRecommendNeutral: "Tu tasa hipotecaria promedio ({mortgageRate}%) es similar a tu TIR base ({baseIRR}%), así que los abonos tendrán un impacto mínimo en tu retorno porcentual."
     }
 };
 function getPropertyValue() {
@@ -1063,10 +1063,10 @@ function doSimulation() {
     baseChart = renderChart(base.yearlyData, 'chart', baseChart, '#0d9488');
     const recEl = document.getElementById('prepay-recommendation');
     if (paymentMethod === 'leverage' && isFinite(base.annualIRR)) {
-        const mRateInput = parseFloat(document.getElementById('mortgage-rate').value) || 12;
+        const effectiveRate = base.weightedAvgRate;
         const baseIRRpct = base.annualIRR * 100;
         if (Math.abs(baseIRRpct) <= 100) {
-            const diff = mRateInput - baseIRRpct;
+            const diff = effectiveRate - baseIRRpct;
             let key, bg, border, color;
             if (diff > 0.5) {
                 key = 'prepayRecommendPositive'; bg = '#f0fdf4'; border = '#86efac'; color = '#166534';
@@ -1079,7 +1079,7 @@ function doSimulation() {
             recEl.style.background = bg;
             recEl.style.border = '1px solid ' + border;
             recEl.style.color = color;
-            recEl.textContent = t[key].replace('{mortgageRate}', mRateInput.toFixed(1)).replace('{baseIRR}', baseIRRpct.toFixed(1));
+            recEl.textContent = t[key].replace('{mortgageRate}', effectiveRate.toFixed(1)).replace('{baseIRR}', baseIRRpct.toFixed(1));
         } else {
             recEl.style.display = 'none';
         }
@@ -1157,6 +1157,7 @@ function runModel(config, ppMap) {
     let cf = [], yd = [], tRental = 0, tExp = 0, tInt = 0, tInv = 0;
     let yIn = {}, yOut = {};
     let payoffMonth = null, lastPay = 0;
+    let weightedRateSum = 0, weightedBalSum = 0;
     if (method === 'cash') {
         cf.push(-pv);
         tInv = pv;
@@ -1205,7 +1206,7 @@ function runModel(config, ppMap) {
                 if (bal > 0.01) {
                     const interest = bal * (curRate / 12);
                     const princ = Math.min(mortgage - interest, bal);
-                    tInt += interest; bal -= princ;
+                    tInt += interest; weightedRateSum += bal * curRate; weightedBalSum += bal; bal -= princ;
                     c = -mortgage; yOut[yr] += mortgage;
                     remMonths--;
                     if (bal <= 0.01) { bal = 0; if (!payoffMonth) payoffMonth = m; }
@@ -1238,7 +1239,8 @@ function runModel(config, ppMap) {
     const cashOut = cf.reduce((s, x) => x < 0 ? s + Math.abs(x) : s, 0);
     const cashIn = cf.reduce((s, x) => x > 0 ? s + x : s, 0);
     const totalProfit = cashIn - cashOut;
-    return { annualIRR: aIRR, totalInvested: tInv, finalPV: fpv, totalRental: tRental, totalExpenses: tExp, totalInterest: tInt, netProceeds: saleProceeds, totalProfit, moic: tInv > 0 ? (tInv + totalProfit) / tInv : 0, yearlyData: yd, mortgagePayoffMonth: payoffMonth, lastPayment: lastPay };
+    const weightedAvgRate = weightedBalSum > 0 ? (weightedRateSum / weightedBalSum) * 100 : 0;
+    return { annualIRR: aIRR, totalInvested: tInv, finalPV: fpv, totalRental: tRental, totalExpenses: tExp, totalInterest: tInt, netProceeds: saleProceeds, totalProfit, moic: tInv > 0 ? (tInv + totalProfit) / tInv : 0, yearlyData: yd, mortgagePayoffMonth: payoffMonth, lastPayment: lastPay, weightedAvgRate };
 }
 function formatIRR(irr) {
     if (!isFinite(irr)) return 'N/A';
