@@ -882,14 +882,18 @@ function renderRateChart() {
     const baseRate = parseFloat(document.getElementById('mortgage-rate').value) || 12;
     const colors = rateSchedule.map(r => Math.abs(r - baseRate) > 0.001 ? '#7c3aed' : '#0d9488');
     rateChart = new Chart(ctx.getContext('2d'), {
-        type: 'bar',
+        type: 'line',
         data: {
             labels: rateSchedule.map((_, i) => (i + 1).toString()),
             datasets: [{
                 data: rateSchedule,
-                backgroundColor: colors,
-                borderRadius: 4,
-                barPercentage: 0.7
+                borderColor: '#0d9488',
+                backgroundColor: 'rgba(13,148,136,0.1)',
+                fill: true,
+                tension: 0.3,
+                borderWidth: 2,
+                pointRadius: 3,
+                pointBackgroundColor: colors
             }]
         },
         options: {
@@ -911,7 +915,6 @@ function renderRateChart() {
                     grid: { display: false }
                 },
                 y: {
-                    title: { display: true, text: '%', color: '#667085', font: { size: 10 } },
                     ticks: { color: '#667085', font: { size: 9 }, callback: v => v + '%' },
                     grid: { color: 'rgba(0,0,0,0.05)' },
                     beginAtZero: false
