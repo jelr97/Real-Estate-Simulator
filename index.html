@@ -255,18 +255,20 @@
                         <label data-i18n="mortgageTerm">Mortgage Term (years)</label>
                         <input type="number" id="mortgage-term" placeholder="e.g., 15" value="15" min="1" max="30" step="1">
                     </div>
-                    <div class="input-group">
-                        <label style="cursor:pointer;display:flex;align-items:center;gap:6px;" onclick="toggleRateSchedule()">
-                            <span data-i18n="rateSchedule">Yearly Rate Schedule</span>
-                            <span id="rate-schedule-arrow" style="font-size:0.7rem;color:#98a2b3;transition:transform 0.2s;">▼</span>
-                        </label>
-                        <p class="hint" data-i18n="rateScheduleHint">Customize the interest rate for each year of the mortgage</p>
-                        <div id="rate-schedule-wrapper" style="display:none;margin-top:8px;">
-                            <div style="position:relative;height:120px;margin-bottom:10px;">
+                    <div style="margin-top:15px;padding-top:15px;border-top:1px solid #e5e7eb;">
+                        <div style="cursor:pointer;display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:#f0fdfa;border:1px solid #0d9488;border-radius:10px;" onclick="toggleRateSchedule()">
+                            <div>
+                                <span style="font-size:0.95rem;font-weight:600;color:#0d9488;" data-i18n="rateSchedule">Yearly Rate Schedule</span>
+                                <p style="font-size:0.72rem;color:#667085;margin-top:2px;" data-i18n="rateScheduleHint">Customize the interest rate for each year of the mortgage</p>
+                            </div>
+                            <span id="rate-schedule-arrow" style="font-size:0.8rem;color:#0d9488;transition:transform 0.2s;flex-shrink:0;">▼</span>
+                        </div>
+                        <div id="rate-schedule-wrapper" style="display:none;margin-top:12px;">
+                            <div style="position:relative;height:140px;margin-bottom:12px;">
                                 <canvas id="rate-chart"></canvas>
                             </div>
                             <div id="rate-schedule-entries" class="rate-schedule-grid"></div>
-                            <button class="btn-clear" onclick="resetRateSchedule()" data-i18n="resetRates" style="margin-top:8px;width:100%;">Reset to base rate</button>
+                            <button class="btn-clear" onclick="resetRateSchedule()" data-i18n="resetRates" style="margin-top:10px;width:100%;">Reset to base rate</button>
                         </div>
                     </div>
                     <div class="net-rental-box" style="border-color:#dc2626;">
