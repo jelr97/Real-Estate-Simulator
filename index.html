@@ -114,7 +114,7 @@
         .rate-entry span { font-size: 0.75rem; color: #667085; white-space: nowrap; min-width: 32px; }
         .rate-entry .input-suffix { flex: 1; }
         .rate-entry input { padding: 8px !important; font-size: 0.85rem !important; }
-        .rate-changed { border-color: #7c3aed !important; background: #faf5ff !important; }
+        .rate-changed { border-color: #7c3aed !important; background: #faf5ff !important; font-weight: 600 !important; }
         .prepay-entry { display: flex; gap: 8px; align-items: center; margin-bottom: 8px; }
         .prepay-entry input { flex: 1; padding: 10px; font-size: 0.9rem; }
         .prepay-entry .entry-label { font-size: 0.75rem; color: #667085; white-space: nowrap; }
@@ -416,7 +416,7 @@ let simulateTimeout = null;
 let prepaymentEntries = [];
 let entryIdCounter = 0;
 let rateSchedule = [];
-let scheduleCustomized = false;
+let rateAnchors = {};
 let rateScheduleOpen = false;
 let rateChart = null;
 const DEFAULT_PROPERTY_VALUE = 500;
@@ -848,26 +848,45 @@ function updateManualEntriesCount() {
     document.getElementById('manual-entries-count').textContent = count > 0 ? `(${count})` : '';
 }
 function initRateSchedule(forceReset) {
-    const baseRate = parseFloat(document.getElementById('mortgage-rate').value) || 12;
     const term = parseInt(document.getElementById('mortgage-term').value) || 15;
-    if (forceReset || !scheduleCustomized) {
-        rateSchedule = Array(term).fill(baseRate);
-    } else {
-        while (rateSchedule.length < term) rateSchedule.push(baseRate);
-        if (rateSchedule.length > term) rateSchedule.length = term;
-    }
+    if (forceReset) rateAnchors = {};
+    Object.keys(rateAnchors).forEach(k => { if (parseInt(k) >= term) delete rateAnchors[k]; });
+    rateSchedule = new Array(term);
+    recalculateRateSchedule();
     renderRateSchedule();
+}
+function recalculateRateSchedule() {
+    const term = rateSchedule.length;
+    if (term === 0) return;
+    const baseRate = parseFloat(document.getElementById('mortgage-rate').value) || 12;
+    const anchors = [[0, rateAnchors[0] !== undefined ? rateAnchors[0] : baseRate]];
+    Object.entries(rateAnchors).forEach(([k, v]) => {
+        const idx = parseInt(k);
+        if (idx > 0 && idx < term) anchors.push([idx, v]);
+    });
+    anchors.sort((a, b) => a[0] - b[0]);
+    for (let i = 0; i < anchors.length; i++) {
+        const [aIdx, aRate] = anchors[i];
+        if (i + 1 < anchors.length) {
+            const [bIdx, bRate] = anchors[i + 1];
+            for (let y = aIdx; y <= bIdx; y++) {
+                const t = bIdx === aIdx ? 0 : (y - aIdx) / (bIdx - aIdx);
+                rateSchedule[y] = Math.round((aRate + t * (bRate - aRate)) * 100) / 100;
+            }
+        } else {
+            for (let y = aIdx; y < term; y++) rateSchedule[y] = aRate;
+        }
+    }
 }
 function renderRateSchedule() {
     const t = translations[currentLang];
-    const baseRate = parseFloat(document.getElementById('mortgage-rate').value) || 12;
     const container = document.getElementById('rate-schedule-entries');
     container.innerHTML = rateSchedule.map((rate, i) => {
-        const changed = Math.abs(rate - baseRate) > 0.001;
+        const isAnchor = rateAnchors[i] !== undefined;
         return `<div class="rate-entry">
             <span>${t.rateYr} ${i + 1}</span>
             <div class="input-suffix" style="flex:1;">
-                <input type="number" value="${rate}" step="0.1" class="${changed ? 'rate-changed' : ''}"
+                <input type="number" value="${rate}" step="0.1" class="${isAnchor ? 'rate-changed' : ''}"
                     onchange="updateRateEntry(${i}, this.value)"
                     oninput="updateRateEntry(${i}, this.value)">
                 <span class="suffix">%</span>
@@ -881,8 +900,8 @@ function renderRateChart() {
     const ctx = document.getElementById('rate-chart');
     if (!ctx) return;
     if (rateChart) rateChart.destroy();
-    const baseRate = parseFloat(document.getElementById('mortgage-rate').value) || 12;
-    const colors = rateSchedule.map(r => Math.abs(r - baseRate) > 0.001 ? '#7c3aed' : '#0d9488');
+    const colors = rateSchedule.map((_, i) => rateAnchors[i] !== undefined ? '#7c3aed' : '#0d9488');
+    const radii = rateSchedule.map((_, i) => rateAnchors[i] !== undefined ? 5 : 3);
     rateChart = new Chart(ctx.getContext('2d'), {
         type: 'line',
         data: {
@@ -894,7 +913,7 @@ function renderRateChart() {
                 fill: true,
                 tension: 0.3,
                 borderWidth: 2,
-                pointRadius: 3,
+                pointRadius: radii,
                 pointBackgroundColor: colors
             }]
         },
@@ -926,13 +945,14 @@ function renderRateChart() {
     });
 }
 function updateRateEntry(idx, val) {
-    rateSchedule[idx] = parseFloat(val) || 0;
-    scheduleCustomized = true;
-    renderRateChart();
+    const rate = parseFloat(val) || 0;
+    rateAnchors[idx] = rate;
+    recalculateRateSchedule();
+    renderRateSchedule();
     runSimulation();
 }
 function resetRateSchedule() {
-    scheduleCustomized = false;
+    rateAnchors = {};
     initRateSchedule(true);
     runSimulation();
 }
@@ -1238,10 +1258,11 @@ document.addEventListener('DOMContentLoaded', () => {
         el.addEventListener('change', handler);
     });
     document.getElementById('horizon-unit').addEventListener('change', () => { if (hasGenerated) autoFillPrepayments(); });
-    document.getElementById('mortgage-rate').addEventListener('change', () => { initRateSchedule(false); });
-    document.getElementById('mortgage-rate').addEventListener('input', () => { initRateSchedule(false); });
-    document.getElementById('mortgage-term').addEventListener('change', () => { initRateSchedule(false); });
-    document.getElementById('mortgage-term').addEventListener('input', () => { initRateSchedule(false); });
+    const scheduleUpdate = () => { initRateSchedule(false); };
+    document.getElementById('mortgage-rate').addEventListener('change', scheduleUpdate);
+    document.getElementById('mortgage-rate').addEventListener('input', scheduleUpdate);
+    document.getElementById('mortgage-term').addEventListener('change', scheduleUpdate);
+    document.getElementById('mortgage-term').addEventListener('input', scheduleUpdate);
     initRateSchedule(true);
     setLanguage('es');
     runSimulation();
