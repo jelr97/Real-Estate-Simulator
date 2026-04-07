@@ -847,6 +847,39 @@ function updateManualEntriesCount() {
     const count = prepaymentEntries.length;
     document.getElementById('manual-entries-count').textContent = count > 0 ? `(${count})` : '';
 }
+function saveState() {
+    const inputs = {};
+    ['property-value','appreciation','rental-income','rental-growth','monthly-expenses',
+     'horizon','down-payment-pct','down-payment-months','mortgage-rate','mortgage-term',
+     'autofill-amount','autofill-frequency'].forEach(id => {
+        inputs[id] = document.getElementById(id).value;
+    });
+    inputs['horizon-unit'] = document.getElementById('horizon-unit').value;
+    inputs['rental-start'] = document.getElementById('rental-start').value;
+    const state = { inputs, paymentMethod, prepayStrategy, currentLang, rateAnchors, prepaymentEntries, hasGenerated, entryIdCounter };
+    try { localStorage.setItem('reSimState', JSON.stringify(state)); } catch(e) {}
+}
+function restoreState() {
+    try {
+        const raw = localStorage.getItem('reSimState');
+        if (!raw) return false;
+        const state = JSON.parse(raw);
+        if (state.inputs) {
+            Object.entries(state.inputs).forEach(([id, val]) => {
+                const el = document.getElementById(id);
+                if (el && val !== undefined && val !== '') el.value = val;
+            });
+        }
+        if (state.paymentMethod) { paymentMethod = state.paymentMethod; setPaymentMethod(paymentMethod); }
+        if (state.prepayStrategy) { prepayStrategy = state.prepayStrategy; setPrepayStrategy(prepayStrategy); }
+        if (state.currentLang) currentLang = state.currentLang;
+        if (state.rateAnchors) rateAnchors = state.rateAnchors;
+        if (state.prepaymentEntries) prepaymentEntries = state.prepaymentEntries;
+        if (state.hasGenerated !== undefined) hasGenerated = state.hasGenerated;
+        if (state.entryIdCounter !== undefined) entryIdCounter = state.entryIdCounter;
+        return true;
+    } catch(e) { return false; }
+}
 function initRateSchedule(forceReset) {
     const term = parseInt(document.getElementById('mortgage-term').value) || 15;
     if (forceReset) rateAnchors = {};
@@ -887,8 +920,8 @@ function renderRateSchedule() {
             <span>${t.rateYr} ${i + 1}</span>
             <div class="input-suffix" style="flex:1;">
                 <input type="number" value="${rate}" step="0.1" class="${isAnchor ? 'rate-changed' : ''}"
-                    onchange="updateRateEntry(${i}, this.value)"
-                    oninput="updateRateEntry(${i}, this.value)">
+                    onfocus="this.select()"
+                    onchange="updateRateEntry(${i}, this.value)">
                 <span class="suffix">%</span>
             </div>
         </div>`;
@@ -1103,6 +1136,7 @@ function doSimulation() {
         ah += `<br>• ${t.assumptionPrepay.replace('{strategy}', sl)}`;
     }
     document.getElementById('assumptions-text').innerHTML = ah;
+    saveState();
 }
 function runModel(config, ppMap) {
     const {
@@ -1264,8 +1298,10 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('mortgage-rate').addEventListener('input', scheduleUpdate);
     document.getElementById('mortgage-term').addEventListener('change', scheduleUpdate);
     document.getElementById('mortgage-term').addEventListener('input', scheduleUpdate);
-    initRateSchedule(true);
-    setLanguage('es');
+    const restored = restoreState();
+    initRateSchedule(!restored);
+    renderPrepaymentEntries();
+    setLanguage(currentLang);
     runSimulation();
 });
 function downloadPDF() {
