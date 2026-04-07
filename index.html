@@ -109,6 +109,12 @@
         }
         .net-rental-label { font-size: 0.75rem; color: #0d9488; }
         .net-rental-value { font-size: 1rem; font-weight: 600; color: #0d9488; }
+        .rate-schedule-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+        .rate-entry { display: flex; align-items: center; gap: 4px; }
+        .rate-entry span { font-size: 0.75rem; color: #667085; white-space: nowrap; min-width: 32px; }
+        .rate-entry .input-suffix { flex: 1; }
+        .rate-entry input { padding: 8px !important; font-size: 0.85rem !important; }
+        .rate-changed { border-color: #7c3aed !important; background: #faf5ff !important; }
         .prepay-entry { display: flex; gap: 8px; align-items: center; margin-bottom: 8px; }
         .prepay-entry input { flex: 1; padding: 10px; font-size: 0.9rem; }
         .prepay-entry .entry-label { font-size: 0.75rem; color: #667085; white-space: nowrap; }
@@ -249,8 +255,19 @@
                         <label data-i18n="mortgageTerm">Mortgage Term (years)</label>
                         <input type="number" id="mortgage-term" placeholder="e.g., 15" value="15" min="1" max="30" step="1">
                     </div>
+                    <div class="input-group">
+                        <label style="cursor:pointer;display:flex;align-items:center;gap:6px;" onclick="toggleRateSchedule()">
+                            <span data-i18n="rateSchedule">Yearly Rate Schedule</span>
+                            <span id="rate-schedule-arrow" style="font-size:0.7rem;color:#98a2b3;transition:transform 0.2s;">▼</span>
+                        </label>
+                        <p class="hint" data-i18n="rateScheduleHint">Customize the interest rate for each year of the mortgage</p>
+                        <div id="rate-schedule-wrapper" style="display:none;margin-top:8px;">
+                            <div id="rate-schedule-entries" class="rate-schedule-grid"></div>
+                            <button class="btn-clear" onclick="resetRateSchedule()" data-i18n="resetRates" style="margin-top:8px;width:100%;">Reset to base rate</button>
+                        </div>
+                    </div>
                     <div class="net-rental-box" style="border-color:#dc2626;">
-                        <div class="net-rental-label" style="color:#dc2626;" data-i18n="monthlyMortgage">Monthly Mortgage Payment</div>
+                        <div class="net-rental-label" style="color:#dc2626;" data-i18n="monthlyMortgage">Monthly Mortgage Payment (Yr 1)</div>
                         <div class="net-rental-value" style="color:#dc2626;" id="monthly-mortgage-value">--</div>
                     </div>
                     <div class="input-group">
@@ -393,6 +410,9 @@ let currentLang = 'es';
 let simulateTimeout = null;
 let prepaymentEntries = [];
 let entryIdCounter = 0;
+let rateSchedule = [];
+let scheduleCustomized = false;
+let rateScheduleOpen = false;
 const DEFAULT_PROPERTY_VALUE = 500;
 const translations = {
     en: {
@@ -421,7 +441,11 @@ const translations = {
         mortgageRate: "Mortgage Interest Rate (% annual)",
         mortgageRateHint: "Current rates vary by country/bank",
         mortgageTerm: "Mortgage Term (years)",
-        monthlyMortgage: "Monthly Mortgage Payment",
+        rateSchedule: "Yearly Rate Schedule",
+        rateScheduleHint: "Customize the interest rate for each year of the mortgage",
+        resetRates: "Reset to base rate",
+        rateYr: "Yr",
+        monthlyMortgage: "Monthly Mortgage Payment (Yr 1)",
         rentalStart: "When does rental income start?",
         afterDelivery: "After down payment period (delivery)",
         immediate: "Immediately (existing property)",
@@ -452,6 +476,8 @@ const translations = {
         assumptionNoVacancy: "No vacancy or transaction costs included",
         assumptionSale: "Property sold at end of horizon at appreciated value",
         assumptionMortgage: "Mortgage uses standard amortization formula",
+        assumptionVariableRate: "Variable rates: payment recalculates each year based on that year's rate",
+        assumptionFixedRate: "Fixed rate: {rate}% annual throughout mortgage term",
         assumptionDownPayment: "Down payment installments have 0% interest",
         yearsAxis: "Years",
         prepayTitle: "Prepayments",
@@ -506,7 +532,11 @@ const translations = {
         mortgageRate: "Tasa de Interés Hipoteca (% anual)",
         mortgageRateHint: "Las tasas varían según país/banco",
         mortgageTerm: "Plazo Hipoteca (años)",
-        monthlyMortgage: "Cuota Mensual Hipoteca",
+        rateSchedule: "Tasas por Año",
+        rateScheduleHint: "Personalice la tasa de interés para cada año de la hipoteca",
+        resetRates: "Restablecer a tasa base",
+        rateYr: "Año",
+        monthlyMortgage: "Cuota Mensual Hipoteca (Año 1)",
         rentalStart: "¿Cuándo inicia el arriendo?",
         afterDelivery: "Después de la cuota inicial (entrega)",
         immediate: "Inmediatamente (inmueble existente)",
@@ -537,6 +567,8 @@ const translations = {
         assumptionNoVacancy: "No incluye vacancia ni costos de transacción",
         assumptionSale: "El inmueble se vende al final del horizonte al valor apreciado",
         assumptionMortgage: "La hipoteca usa fórmula de amortización estándar",
+        assumptionVariableRate: "Tasas variables: la cuota se recalcula cada año según la tasa de ese año",
+        assumptionFixedRate: "Tasa fija: {rate}% anual durante todo el plazo",
         assumptionDownPayment: "Las cuotas de la cuota inicial no tienen interés",
         yearsAxis: "Años",
         prepayTitle: "Abonos a Capital",
@@ -687,6 +719,7 @@ function getModelConfig(pv, appR, mRent, mExp, totalM) {
         config.downPaymentMonths = parseInt(document.getElementById('down-payment-months').value) || 24;
         config.mortgageRate = (parseFloat(document.getElementById('mortgage-rate').value) || 12) / 100;
         config.mortgageTermYears = parseInt(document.getElementById('mortgage-term').value) || 15;
+        config.rateSchedule = rateSchedule.map(r => r / 100);
         config.rentalStart = document.getElementById('rental-start').value;
     }
     return config;
@@ -703,6 +736,7 @@ function setLanguage(lang) {
         if (translations[lang][k]) el.textContent = translations[lang][k];
     });
     renderPrepaymentEntries();
+    renderRateSchedule();
     runSimulation();
 }
 function setPaymentMethod(method) {
@@ -807,6 +841,54 @@ function updateManualEntriesCount() {
     const count = prepaymentEntries.length;
     document.getElementById('manual-entries-count').textContent = count > 0 ? `(${count})` : '';
 }
+function initRateSchedule(forceReset) {
+    const baseRate = parseFloat(document.getElementById('mortgage-rate').value) || 12;
+    const term = parseInt(document.getElementById('mortgage-term').value) || 15;
+    if (forceReset || !scheduleCustomized) {
+        rateSchedule = Array(term).fill(baseRate);
+    } else {
+        while (rateSchedule.length < term) rateSchedule.push(baseRate);
+        if (rateSchedule.length > term) rateSchedule.length = term;
+    }
+    renderRateSchedule();
+}
+function renderRateSchedule() {
+    const t = translations[currentLang];
+    const baseRate = parseFloat(document.getElementById('mortgage-rate').value) || 12;
+    const container = document.getElementById('rate-schedule-entries');
+    container.innerHTML = rateSchedule.map((rate, i) => {
+        const changed = Math.abs(rate - baseRate) > 0.001;
+        return `<div class="rate-entry">
+            <span>${t.rateYr} ${i + 1}</span>
+            <div class="input-suffix" style="flex:1;">
+                <input type="number" value="${rate}" step="0.1" class="${changed ? 'rate-changed' : ''}"
+                    onchange="updateRateEntry(${i}, this.value)"
+                    oninput="updateRateEntry(${i}, this.value)">
+                <span class="suffix">%</span>
+            </div>
+        </div>`;
+    }).join('');
+}
+function updateRateEntry(idx, val) {
+    rateSchedule[idx] = parseFloat(val) || 0;
+    scheduleCustomized = true;
+    runSimulation();
+}
+function resetRateSchedule() {
+    scheduleCustomized = false;
+    initRateSchedule(true);
+    runSimulation();
+}
+function toggleRateSchedule() {
+    rateScheduleOpen = !rateScheduleOpen;
+    document.getElementById('rate-schedule-wrapper').style.display = rateScheduleOpen ? 'block' : 'none';
+    document.getElementById('rate-schedule-arrow').style.transform = rateScheduleOpen ? 'rotate(180deg)' : '';
+}
+function isVariableRate() {
+    if (rateSchedule.length === 0) return false;
+    const first = rateSchedule[0];
+    return rateSchedule.some(r => Math.abs(r - first) > 0.001);
+}
 function runSimulation() {
     if (simulateTimeout) clearTimeout(simulateTimeout);
     simulateTimeout = setTimeout(doSimulation, 100);
@@ -838,7 +920,8 @@ function doSimulation() {
     const mmEl = document.getElementById('monthly-mortgage-value');
     if (config.paymentMethod === 'leverage' && pv > 0) {
         const loan = pv * (1 - config.downPaymentPct);
-        const pmt = calcPMT(loan, config.mortgageRate, config.mortgageTermYears * 12);
+        const firstRate = config.rateSchedule.length > 0 ? config.rateSchedule[0] : config.mortgageRate;
+        const pmt = calcPMT(loan, firstRate, config.mortgageTermYears * 12);
         mmEl.textContent = '$' + formatShort(pmt);
     } else {
         mmEl.textContent = '--';
@@ -928,7 +1011,15 @@ function doSimulation() {
     }
     const rGrowthPct = (parseFloat(document.getElementById('rental-growth').value) || 0);
     let ah = `<strong>${t.assumptionsModel}</strong><br>• ${t.assumptionAppreciation.replace('{rate}', (appR * 100).toFixed(1))}<br>• ${t.assumptionRental.replace('{amount}', formatShort(mRent))}<br>• ${t.assumptionExpenses.replace('{amount}', formatShort(mExp))}<br>• ${t.assumptionRentalGrowth.replace('{rate}', rGrowthPct.toFixed(1))}<br>• ${t.assumptionNoVacancy}<br>• ${t.assumptionSale}`;
-    if (paymentMethod === 'leverage') ah += `<br>• ${t.assumptionMortgage}<br>• ${t.assumptionDownPayment}`;
+    if (paymentMethod === 'leverage') {
+        ah += `<br>• ${t.assumptionMortgage}<br>• ${t.assumptionDownPayment}`;
+        if (isVariableRate()) {
+            ah += `<br>• ${t.assumptionVariableRate}`;
+        } else {
+            const rateVal = rateSchedule.length > 0 ? (rateSchedule[0]).toFixed(1) : (config.mortgageRate * 100).toFixed(1);
+            ah += `<br>• ${t.assumptionFixedRate.replace('{rate}', rateVal)}`;
+        }
+    }
     if (hasPP) {
         const sl = prepayStrategy === 'reduce-time' ? t.strategyReduceTime : t.strategyReduceInstallment;
         ah += `<br>• ${t.assumptionPrepay.replace('{strategy}', sl)}`;
@@ -948,6 +1039,7 @@ function runModel(config, ppMap) {
         downPaymentMonths: dpM = 0,
         mortgageRate: mRate = 0,
         mortgageTermYears: mTerm = 0,
+        rateSchedule: rSched = [],
         rentalStart: rStart = 'after-dp'
     } = config;
     let cf = [], yd = [], tRental = 0, tExp = 0, tInt = 0, tInv = 0;
@@ -971,8 +1063,11 @@ function runModel(config, ppMap) {
         }
     } else {
         const dp = pv * dpPct, mDP = dp / dpM, loan = pv * (1 - dpPct);
-        let mortgage = calcPMT(loan, mRate, mTerm * 12);
+        const getRate = (mortgageYr) => rSched[mortgageYr] !== undefined ? rSched[mortgageYr] : mRate;
+        let curRate = getRate(0);
+        let mortgage = calcPMT(loan, curRate, mTerm * 12);
         let bal = loan, cumCF = 0, remMonths = mTerm * 12;
+        let prevMortgageYr = -1;
         lastPay = mortgage;
         for (let m = 0; m <= totalM; m++) {
             const yr = Math.max(1, Math.ceil((m + 1) / 12)), cv = pv * Math.pow(1 + appR / 12, m);
@@ -987,8 +1082,16 @@ function runModel(config, ppMap) {
                 c = -mDP; tInv += mDP; yOut[yr] += mDP;
                 if (rStart === 'immediate') { c += rent_m - exp_m; tRental += rent_m; tExp += exp_m; yIn[yr] += rent_m; yOut[yr] += exp_m; }
             } else {
+                const mortgageYr = Math.floor((m - dpM) / 12);
+                const yearRate = getRate(mortgageYr);
+                if (mortgageYr !== prevMortgageYr && bal > 0.01 && remMonths > 0) {
+                    curRate = yearRate;
+                    mortgage = calcPMT(bal, curRate, remMonths);
+                    lastPay = mortgage;
+                    prevMortgageYr = mortgageYr;
+                }
                 if (bal > 0.01) {
-                    const interest = bal * (mRate / 12);
+                    const interest = bal * (curRate / 12);
                     const princ = Math.min(mortgage - interest, bal);
                     tInt += interest; bal -= princ;
                     c = -mortgage; yOut[yr] += mortgage;
@@ -999,7 +1102,7 @@ function runModel(config, ppMap) {
                         bal -= pa; c -= pa; tInv += pa; yOut[yr] += pa;
                         if (bal <= 0.01) { bal = 0; if (!payoffMonth) payoffMonth = m; }
                         else if (prepayStrategy === 'reduce-installment' && remMonths > 0) {
-                            mortgage = calcPMT(bal, mRate, remMonths);
+                            mortgage = calcPMT(bal, curRate, remMonths);
                             lastPay = mortgage;
                         }
                     }
@@ -1078,6 +1181,11 @@ document.addEventListener('DOMContentLoaded', () => {
         el.addEventListener('change', handler);
     });
     document.getElementById('horizon-unit').addEventListener('change', () => { if (hasGenerated) autoFillPrepayments(); });
+    document.getElementById('mortgage-rate').addEventListener('change', () => { initRateSchedule(false); });
+    document.getElementById('mortgage-rate').addEventListener('input', () => { initRateSchedule(false); });
+    document.getElementById('mortgage-term').addEventListener('change', () => { initRateSchedule(false); });
+    document.getElementById('mortgage-term').addEventListener('input', () => { initRateSchedule(false); });
+    initRateSchedule(true);
     setLanguage('es');
     runSimulation();
 });
