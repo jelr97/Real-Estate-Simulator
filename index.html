@@ -11,7 +11,7 @@
         gtag('js', new Date());
         gtag('config', 'G-D4DKSX4DBE');
     </script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
         html, body { background: #ffffff !important; min-height: 100vh; }
@@ -257,6 +257,7 @@
                     </div>
                 </div>
             </div>
+            <div id="horizon-warning" style="display:none;padding:10px 14px;border-radius:10px;font-size:0.82rem;margin-bottom:14px;line-height:1.5;background:#fef2f2;border:1px solid #fca5a5;color:#991b1b;"></div>
             <div class="section-divider"></div>
             <div class="results-section" id="results">
                 <div class="card irr-card">
@@ -271,7 +272,7 @@
                         <div class="metric-box"><div class="metric-label" data-i18n="finalPropertyValue">Final Property Value</div><div class="metric-value" id="final-property-value">--</div></div>
                         <div class="metric-box"><div class="metric-label" data-i18n="totalRentalGross">Total Rental (Gross)</div><div class="metric-value positive" id="total-rental">--</div></div>
                         <div class="metric-box"><div class="metric-label" data-i18n="totalExpenses">Total Expenses</div><div class="metric-value negative" id="total-expenses">--</div></div>
-                        <div class="metric-box"><div class="metric-label" data-i18n="totalInterest">Total Interest Paid</div><div class="metric-value negative" id="total-interest">--</div></div>
+                        <div class="metric-box" id="interest-box"><div class="metric-label" data-i18n="totalInterest">Total Interest Paid</div><div class="metric-value negative" id="total-interest">--</div></div>
                         <div class="metric-box"><div class="metric-label" data-i18n="netProceeds">Net Proceeds at Sale</div><div class="metric-value" id="net-proceeds">--</div></div>
                         <div class="metric-box"><div class="metric-label" data-i18n="totalProfit">Total Profit</div><div class="metric-value positive" id="total-profit">--</div></div>
                         <div class="metric-box"><div class="metric-label" data-i18n="moic">Return Multiple (MOIC)</div><div class="metric-value positive" id="moic">--</div></div>
@@ -556,7 +557,8 @@ const translations = {
 };
 function getPropertyValue() {
     const v = document.getElementById('property-value').value;
-    return (v === '' ? DEFAULT_PROPERTY_VALUE : (parseFloat(v) || 0)) * 1e6;
+    const n = v === '' ? DEFAULT_PROPERTY_VALUE : (parseFloat(v) || 0);
+    return Math.max(0, n) * 1e6;
 }
 function formatShort(n) {
     const a = Math.abs(n);
@@ -669,7 +671,7 @@ function updateEquivalents() {
 function getModelConfig(pv, appR, mRent, mExp, totalM) {
     const config = { paymentMethod, pv, appR, mRent, mExp, totalM };
     if (paymentMethod === 'leverage') {
-        config.downPaymentPct = (parseFloat(document.getElementById('down-payment-pct').value) || 30) / 100;
+        config.downPaymentPct = Math.min(100, Math.max(1, parseFloat(document.getElementById('down-payment-pct').value) || 30)) / 100;
         config.downPaymentMonths = parseInt(document.getElementById('down-payment-months').value) || 24;
         config.mortgageRate = (parseFloat(document.getElementById('mortgage-rate').value) || 12) / 100;
         config.mortgageTermYears = parseInt(document.getElementById('mortgage-term').value) || 15;
@@ -763,9 +765,10 @@ function clearPrepayments() {
 }
 function getPrepayMap() {
     const map = {};
+    const dpM = parseInt(document.getElementById('down-payment-months').value) || 24;
     prepaymentEntries.forEach(e => {
         const m = parseInt(e.month), a = parseFloat(e.amount);
-        if (m > 0 && a > 0) map[m] = (map[m] || 0) + a * 1e6;
+        if (m >= dpM && a > 0) map[m] = (map[m] || 0) + a * 1e6;
     });
     return map;
 }
@@ -796,8 +799,20 @@ function runSimulation() {
     if (simulateTimeout) clearTimeout(simulateTimeout);
     simulateTimeout = setTimeout(doSimulation, 100);
 }
+function clampMin(id, min) {
+    const el = document.getElementById(id);
+    const v = parseFloat(el.value);
+    if (!isNaN(v) && v < min) el.value = min;
+}
 function doSimulation() {
     const t = translations[currentLang];
+    clampMin('rental-income', 0);
+    clampMin('monthly-expenses', 0);
+    clampMin('horizon', 1);
+    clampMin('down-payment-pct', 1);
+    clampMin('mortgage-rate', 0);
+    clampMin('mortgage-term', 1);
+    clampMin('down-payment-months', 1);
     const pv = getPropertyValue();
     const appR = (parseFloat(document.getElementById('appreciation').value) || 0) / 100;
     const mRent = (parseFloat(document.getElementById('rental-income').value) || 0) * 1e6;
@@ -817,12 +832,24 @@ function doSimulation() {
     }
     const invLabel = paymentMethod === 'leverage' ? t.totalInvestedLeverage : t.totalInvestedCash;
     document.getElementById('total-invested-label').textContent = invLabel;
+    document.getElementById('interest-box').style.display = paymentMethod === 'leverage' ? '' : 'none';
     if (pv <= 0 || totalM <= 0) {
         ['irr-value','total-invested','final-property-value','total-rental','total-expenses','total-interest','net-proceeds','total-profit','moic'].forEach(id => document.getElementById(id).textContent = '--');
         document.querySelector('#yearly-table tbody').innerHTML = '';
         if (baseChart) { baseChart.destroy(); baseChart = null; }
         document.getElementById('pp-results').style.display = 'none';
+        document.getElementById('horizon-warning').style.display = 'none';
         return;
+    }
+    const warnEl = document.getElementById('horizon-warning');
+    if (paymentMethod === 'leverage' && config.downPaymentMonths >= totalM) {
+        const warnMsg = currentLang === 'es'
+            ? '⚠ El horizonte de inversión es menor o igual al plazo de cuota inicial. No habrá período de hipoteca ni arriendo (si es post-entrega). Los resultados pueden no ser representativos.'
+            : '⚠ Investment horizon is less than or equal to the down payment period. There will be no mortgage or rental period (if post-delivery). Results may not be representative.';
+        warnEl.textContent = warnMsg;
+        warnEl.style.display = 'block';
+    } else {
+        warnEl.style.display = 'none';
     }
     const base = runModel(config, {});
     showResults(base, '');
@@ -937,7 +964,7 @@ function runModel(config, ppMap) {
             if (!yOut[yr]) yOut[yr] = 0;
             if (m === 0) {
                 c = -mDP; tInv += mDP; yOut[yr] += mDP;
-            } else if (m <= dpM) {
+            } else if (m < dpM) {
                 c = -mDP; tInv += mDP; yOut[yr] += mDP;
                 if (rStart === 'immediate') { c += mRent - mExp; tRental += mRent; tExp += mExp; yIn[yr] += mRent; yOut[yr] += mExp; }
             } else {
@@ -968,20 +995,21 @@ function runModel(config, ppMap) {
                 yd.push({ year: ay, propertyValue: cv, equity: cv - Math.max(0, bal), debt: Math.max(0, bal), cumCashflow: cumCF, inflows: yIn[ay] || 0, outflows: yOut[ay] || 0 });
             }
         }
-        if (!payoffMonth) payoffMonth = dpM + mTerm * 12;
+        if (!payoffMonth) payoffMonth = dpM + mTerm * 12 - 1;
     }
     const mIRR = calcIRR(cf, 0.01), aIRR = Math.pow(1 + mIRR, 12) - 1;
-    const fpv = pv * Math.pow(1 + appR, totalM / 12);
+    const fpv = pv * Math.pow(1 + appR / 12, totalM);
     const finalDebt = method === 'cash' ? 0 : (yd.length > 0 ? yd[yd.length - 1].debt : 0);
     const saleProceeds = fpv - finalDebt;
     const cashOut = cf.reduce((s, x) => x < 0 ? s + Math.abs(x) : s, 0);
     const cashIn = cf.reduce((s, x) => x > 0 ? s + x : s, 0);
-    return { annualIRR: aIRR, totalInvested: tInv, finalPV: fpv, totalRental: tRental, totalExpenses: tExp, totalInterest: tInt, netProceeds: saleProceeds, totalProfit: cashIn - cashOut, moic: cashOut > 0 ? cashIn / cashOut : 0, yearlyData: yd, mortgagePayoffMonth: payoffMonth, lastPayment: lastPay };
+    const totalProfit = cashIn - cashOut;
+    return { annualIRR: aIRR, totalInvested: tInv, finalPV: fpv, totalRental: tRental, totalExpenses: tExp, totalInterest: tInt, netProceeds: saleProceeds, totalProfit, moic: tInv > 0 ? (tInv + totalProfit) / tInv : 0, yearlyData: yd, mortgagePayoffMonth: payoffMonth, lastPayment: lastPay };
 }
 function formatIRR(irr) {
     if (!isFinite(irr)) return 'N/A';
     const pct = irr * 100;
-    if (pct > 100 || pct < -100) return 'N/A';
+    if (pct > 200 || pct < -99) return 'N/A';
     return pct.toFixed(2) + '%';
 }
 function showResults(r, pfx) {
@@ -1024,16 +1052,20 @@ document.addEventListener('DOMContentLoaded', () => {
         el.addEventListener('input', runSimulation);
         el.addEventListener('change', runSimulation);
     });
-    ['autofill-amount', 'autofill-frequency'].forEach(id => {
+    ['autofill-amount', 'autofill-frequency', 'horizon', 'down-payment-months'].forEach(id => {
         const el = document.getElementById(id);
         const handler = () => { if (hasGenerated) autoFillPrepayments(); };
         el.addEventListener('input', handler);
         el.addEventListener('change', handler);
     });
+    document.getElementById('horizon-unit').addEventListener('change', () => { if (hasGenerated) autoFillPrepayments(); });
     setLanguage('es');
     runSimulation();
 });
 function downloadPDF() {
+    if (document.getElementById('print-overlay')) return;
+    const btn = document.getElementById('btn-pdf');
+    btn.classList.add('loading');
     const t = translations[currentLang];
     const $ = id => document.getElementById(id);
     const txt = id => $(id)?.textContent || '--';
@@ -1094,11 +1126,15 @@ function downloadPDF() {
     overlay.id = 'print-overlay';
     overlay.innerHTML = '<div class="p-page"><div style="text-align:center;font-size:1.1rem;font-weight:700;color:#0d9488;margin-bottom:14px;">' + t.title + '</div><div class="p-cols"><div class="p-col">' + p1L + '</div><div class="p-col">' + p1R + '</div></div></div><div class="p-page"><div class="p-cols"><div class="p-col">' + p2L + '</div><div class="p-col">' + p2R + '</div></div></div><div class="p-page">' + p3 + '</div>' + ppPages;
     document.body.appendChild(overlay);
-    window.addEventListener('afterprint', function cleanup() {
+    function cleanupOverlay() {
         overlay.remove();
+        document.getElementById('btn-pdf').classList.remove('loading');
+    }
+    window.addEventListener('afterprint', function cleanup() {
+        cleanupOverlay();
         window.removeEventListener('afterprint', cleanup);
     });
-    var fallbackId = setTimeout(function() { if (document.getElementById('print-overlay')) overlay.remove(); }, 5000);
+    var fallbackId = setTimeout(function() { if (document.getElementById('print-overlay')) cleanupOverlay(); }, 5000);
     window.addEventListener('afterprint', function() { clearTimeout(fallbackId); }, { once: true });
     setTimeout(function() { window.print(); }, 150);
 }
