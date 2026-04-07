@@ -192,6 +192,11 @@
                     <p class="equivalent" id="rental-equivalent"></p>
                 </div>
                 <div class="input-group">
+                    <label data-i18n="rentalGrowth">Annual Rental Growth (%)</label>
+                    <input type="number" id="rental-growth" placeholder="e.g., 3" value="3" step="0.1">
+                    <p class="hint" data-i18n="rentalGrowthHint">Applied to both rent and expenses annually</p>
+                </div>
+                <div class="input-group">
                     <label data-i18n="monthlyExpenses">Monthly Expenses (millions)</label>
                     <div class="input-suffix">
                         <input type="number" id="monthly-expenses" placeholder="0.8" value="0.8" step="0.1">
@@ -398,6 +403,8 @@ const translations = {
         appreciationHint: "Historical avg: 3-7% depending on market",
         rentalIncome: "Monthly Rental Income (millions)",
         rentalEquivalent: "{annual}% annual yield",
+        rentalGrowth: "Annual Rental Growth (%)",
+        rentalGrowthHint: "Applied to both rent and expenses annually",
         monthlyExpenses: "Monthly Expenses (millions)",
         expensesEquivalent: "{annual}% annual of property",
         netMonthlyRental: "Net Monthly Rental",
@@ -441,6 +448,7 @@ const translations = {
         assumptionAppreciation: "Property appreciates at {rate}% annually (compounded monthly)",
         assumptionRental: "Monthly rental income of ${amount}",
         assumptionExpenses: "Monthly expenses of ${amount}",
+        assumptionRentalGrowth: "Rent and expenses grow at {rate}% annually",
         assumptionNoVacancy: "No vacancy or transaction costs included",
         assumptionSale: "Property sold at end of horizon at appreciated value",
         assumptionMortgage: "Mortgage uses standard amortization formula",
@@ -480,6 +488,8 @@ const translations = {
         appreciationHint: "Promedio histórico: 3-7% según el mercado",
         rentalIncome: "Arriendo Mensual (millones)",
         rentalEquivalent: "{annual}% rendimiento anual",
+        rentalGrowth: "Crecimiento Anual del Arriendo (%)",
+        rentalGrowthHint: "Aplicado al arriendo y gastos anualmente",
         monthlyExpenses: "Gastos Mensuales (millones)",
         expensesEquivalent: "{annual}% anual del inmueble",
         netMonthlyRental: "Arriendo Neto Mensual",
@@ -523,6 +533,7 @@ const translations = {
         assumptionAppreciation: "El inmueble se valoriza {rate}% anual (capitalización mensual)",
         assumptionRental: "Arriendo mensual de ${amount}",
         assumptionExpenses: "Gastos mensuales de ${amount}",
+        assumptionRentalGrowth: "Arriendo y gastos crecen al {rate}% anual",
         assumptionNoVacancy: "No incluye vacancia ni costos de transacción",
         assumptionSale: "El inmueble se vende al final del horizonte al valor apreciado",
         assumptionMortgage: "La hipoteca usa fórmula de amortización estándar",
@@ -669,7 +680,8 @@ function updateEquivalents() {
     }
 }
 function getModelConfig(pv, appR, mRent, mExp, totalM) {
-    const config = { paymentMethod, pv, appR, mRent, mExp, totalM };
+    const rentalGrowth = (parseFloat(document.getElementById('rental-growth').value) || 0) / 100;
+    const config = { paymentMethod, pv, appR, mRent, mExp, totalM, rentalGrowth };
     if (paymentMethod === 'leverage') {
         config.downPaymentPct = Math.min(100, Math.max(1, parseFloat(document.getElementById('down-payment-pct').value) || 30)) / 100;
         config.downPaymentMonths = parseInt(document.getElementById('down-payment-months').value) || 24;
@@ -807,6 +819,7 @@ function clampMin(id, min) {
 function doSimulation() {
     const t = translations[currentLang];
     clampMin('rental-income', 0);
+    clampMin('rental-growth', 0);
     clampMin('monthly-expenses', 0);
     clampMin('horizon', 1);
     clampMin('down-payment-pct', 1);
@@ -913,7 +926,8 @@ function doSimulation() {
         }
         updatePrepaymentSummary();
     }
-    let ah = `<strong>${t.assumptionsModel}</strong><br>• ${t.assumptionAppreciation.replace('{rate}', (appR * 100).toFixed(1))}<br>• ${t.assumptionRental.replace('{amount}', formatShort(mRent))}<br>• ${t.assumptionExpenses.replace('{amount}', formatShort(mExp))}<br>• ${t.assumptionNoVacancy}<br>• ${t.assumptionSale}`;
+    const rGrowthPct = (parseFloat(document.getElementById('rental-growth').value) || 0);
+    let ah = `<strong>${t.assumptionsModel}</strong><br>• ${t.assumptionAppreciation.replace('{rate}', (appR * 100).toFixed(1))}<br>• ${t.assumptionRental.replace('{amount}', formatShort(mRent))}<br>• ${t.assumptionExpenses.replace('{amount}', formatShort(mExp))}<br>• ${t.assumptionRentalGrowth.replace('{rate}', rGrowthPct.toFixed(1))}<br>• ${t.assumptionNoVacancy}<br>• ${t.assumptionSale}`;
     if (paymentMethod === 'leverage') ah += `<br>• ${t.assumptionMortgage}<br>• ${t.assumptionDownPayment}`;
     if (hasPP) {
         const sl = prepayStrategy === 'reduce-time' ? t.strategyReduceTime : t.strategyReduceInstallment;
@@ -929,6 +943,7 @@ function runModel(config, ppMap) {
         mRent,
         mExp,
         totalM,
+        rentalGrowth: rGrowth = 0,
         downPaymentPct: dpPct = 0,
         downPaymentMonths: dpM = 0,
         mortgageRate: mRate = 0,
@@ -943,11 +958,13 @@ function runModel(config, ppMap) {
         tInv = pv;
         yOut[1] = pv;
         for (let m = 1; m <= totalM; m++) {
-            const yr = Math.ceil(m / 12), cv = pv * Math.pow(1 + appR / 12, m), nr = mRent - mExp;
-            tRental += mRent; tExp += mExp;
+            const yr = Math.ceil(m / 12), cv = pv * Math.pow(1 + appR / 12, m);
+            const gf = Math.pow(1 + rGrowth / 12, m);
+            const rent_m = mRent * gf, exp_m = mExp * gf, nr = rent_m - exp_m;
+            tRental += rent_m; tExp += exp_m;
             if (!yIn[yr]) yIn[yr] = 0;
             if (!yOut[yr]) yOut[yr] = 0;
-            yIn[yr] += mRent; yOut[yr] += mExp;
+            yIn[yr] += rent_m; yOut[yr] += exp_m;
             if (m === totalM) { cf.push(nr + cv); yIn[yr] += cv; } else cf.push(nr);
             const cumCF = m === totalM ? tRental - tExp - pv + cv : tRental - tExp - pv;
             if (m % 12 === 0 || m === totalM) yd.push({ year: yr, propertyValue: cv, equity: cv, debt: 0, cumCashflow: cumCF, inflows: yIn[yr] || 0, outflows: yOut[yr] || 0 });
@@ -959,6 +976,8 @@ function runModel(config, ppMap) {
         lastPay = mortgage;
         for (let m = 0; m <= totalM; m++) {
             const yr = Math.max(1, Math.ceil((m + 1) / 12)), cv = pv * Math.pow(1 + appR / 12, m);
+            const gf = Math.pow(1 + rGrowth / 12, m);
+            const rent_m = mRent * gf, exp_m = mExp * gf;
             let c = 0;
             if (!yIn[yr]) yIn[yr] = 0;
             if (!yOut[yr]) yOut[yr] = 0;
@@ -966,7 +985,7 @@ function runModel(config, ppMap) {
                 c = -mDP; tInv += mDP; yOut[yr] += mDP;
             } else if (m < dpM) {
                 c = -mDP; tInv += mDP; yOut[yr] += mDP;
-                if (rStart === 'immediate') { c += mRent - mExp; tRental += mRent; tExp += mExp; yIn[yr] += mRent; yOut[yr] += mExp; }
+                if (rStart === 'immediate') { c += rent_m - exp_m; tRental += rent_m; tExp += exp_m; yIn[yr] += rent_m; yOut[yr] += exp_m; }
             } else {
                 if (bal > 0.01) {
                     const interest = bal * (mRate / 12);
@@ -985,8 +1004,8 @@ function runModel(config, ppMap) {
                         }
                     }
                 }
-                c += mRent - mExp; tRental += mRent; tExp += mExp;
-                yIn[yr] += mRent; yOut[yr] += mExp;
+                c += rent_m - exp_m; tRental += rent_m; tExp += exp_m;
+                yIn[yr] += rent_m; yOut[yr] += exp_m;
             }
             if (m === totalM) { c += cv - Math.max(0, bal); yIn[yr] += cv - Math.max(0, bal); }
             cumCF += c; cf.push(c);
