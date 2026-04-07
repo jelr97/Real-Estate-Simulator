@@ -449,7 +449,7 @@ const translations = {
         mortgageTerm: "Mortgage Term (years)",
         rateSchedule: "Yearly Rate Schedule",
         rateScheduleHint: "Customize the interest rate for each year of the mortgage",
-        resetRates: "Reset to base rate",
+        resetRates: "Reset to Year 1 rate",
         rateYr: "Yr",
         monthlyMortgage: "Monthly Mortgage Payment (Yr 1)",
         rentalStart: "When does rental income start?",
@@ -540,7 +540,7 @@ const translations = {
         mortgageTerm: "Plazo Hipoteca (años)",
         rateSchedule: "Tasas por Año",
         rateScheduleHint: "Personalice la tasa de interés para cada año de la hipoteca",
-        resetRates: "Restablecer a tasa base",
+        resetRates: "Restablecer a tasa del Año 1",
         rateYr: "Año",
         monthlyMortgage: "Cuota Mensual Hipoteca (Año 1)",
         rentalStart: "¿Cuándo inicia el arriendo?",
@@ -938,6 +938,7 @@ function renderRateChart() {
                 y: {
                     ticks: { color: '#667085', font: { size: 9 }, callback: v => v + '%' },
                     grid: { color: 'rgba(0,0,0,0.05)' },
+                    min: Math.min(4, ...rateSchedule),
                     beginAtZero: false
                 }
             }
