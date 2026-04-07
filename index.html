@@ -262,6 +262,9 @@
                         </label>
                         <p class="hint" data-i18n="rateScheduleHint">Customize the interest rate for each year of the mortgage</p>
                         <div id="rate-schedule-wrapper" style="display:none;margin-top:8px;">
+                            <div style="position:relative;height:120px;margin-bottom:10px;">
+                                <canvas id="rate-chart"></canvas>
+                            </div>
                             <div id="rate-schedule-entries" class="rate-schedule-grid"></div>
                             <button class="btn-clear" onclick="resetRateSchedule()" data-i18n="resetRates" style="margin-top:8px;width:100%;">Reset to base rate</button>
                         </div>
@@ -413,6 +416,7 @@ let entryIdCounter = 0;
 let rateSchedule = [];
 let scheduleCustomized = false;
 let rateScheduleOpen = false;
+let rateChart = null;
 const DEFAULT_PROPERTY_VALUE = 500;
 const translations = {
     en: {
@@ -868,10 +872,58 @@ function renderRateSchedule() {
             </div>
         </div>`;
     }).join('');
+    renderRateChart();
+}
+function renderRateChart() {
+    const t = translations[currentLang];
+    const ctx = document.getElementById('rate-chart');
+    if (!ctx) return;
+    if (rateChart) rateChart.destroy();
+    const baseRate = parseFloat(document.getElementById('mortgage-rate').value) || 12;
+    const colors = rateSchedule.map(r => Math.abs(r - baseRate) > 0.001 ? '#7c3aed' : '#0d9488');
+    rateChart = new Chart(ctx.getContext('2d'), {
+        type: 'bar',
+        data: {
+            labels: rateSchedule.map((_, i) => (i + 1).toString()),
+            datasets: [{
+                data: rateSchedule,
+                backgroundColor: colors,
+                borderRadius: 4,
+                barPercentage: 0.7
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { display: false },
+                tooltip: {
+                    callbacks: {
+                        title: (items) => t.rateYr + ' ' + items[0].label,
+                        label: (item) => item.raw.toFixed(1) + '%'
+                    }
+                }
+            },
+            scales: {
+                x: {
+                    title: { display: true, text: t.yearsAxis, color: '#667085', font: { size: 10 } },
+                    ticks: { color: '#667085', font: { size: 9 } },
+                    grid: { display: false }
+                },
+                y: {
+                    title: { display: true, text: '%', color: '#667085', font: { size: 10 } },
+                    ticks: { color: '#667085', font: { size: 9 }, callback: v => v + '%' },
+                    grid: { color: 'rgba(0,0,0,0.05)' },
+                    beginAtZero: false
+                }
+            }
+        }
+    });
 }
 function updateRateEntry(idx, val) {
     rateSchedule[idx] = parseFloat(val) || 0;
     scheduleCustomized = true;
+    renderRateChart();
     runSimulation();
 }
 function resetRateSchedule() {
