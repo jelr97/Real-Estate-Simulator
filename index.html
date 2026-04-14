@@ -251,19 +251,16 @@
                         <input type="number" id="mortgage-term" placeholder="e.g., 20" value="20" min="1" max="30" step="1">
                     </div>
                     <div style="margin-top:15px;padding-top:15px;border-top:1px solid #e5e7eb;">
-                        <div style="cursor:pointer;display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:#f0fdfa;border:1px solid #0d9488;border-radius:10px;" onclick="toggleRateSchedule()">
-                            <div>
-                                <span style="font-size:0.95rem;font-weight:600;color:#0d9488;" data-i18n="rateSchedule">Mortgage Interest Rates (% annual)</span>
-                                <p style="font-size:0.72rem;color:#667085;margin-top:2px;" data-i18n="rateScheduleHint">Set the interest rate for each year of the mortgage. Click any year to customize it.</p>
-                            </div>
-                            <span id="rate-schedule-arrow" style="font-size:0.8rem;color:#0d9488;transition:transform 0.2s;flex-shrink:0;transform:rotate(180deg);">▼</span>
+                        <div style="padding:10px 14px;background:#f0fdfa;border:1px solid #0d9488;border-radius:10px;">
+                            <span style="font-size:0.95rem;font-weight:600;color:#0d9488;" data-i18n="rateSchedule">Mortgage Interest Rates (% annual)</span>
+                            <p style="font-size:0.72rem;color:#667085;margin-top:2px;" data-i18n="rateScheduleHint">Set the interest rate for each year of the mortgage. Click any year to customize it.</p>
                         </div>
-                        <div id="rate-schedule-wrapper" style="display:block;margin-top:12px;">
+                        <div style="margin-top:12px;">
                             <div style="position:relative;height:140px;margin-bottom:12px;">
                                 <canvas id="rate-chart"></canvas>
                             </div>
                             <div id="rate-schedule-entries" class="rate-schedule-grid"></div>
-                            <button class="btn-clear" onclick="resetRateSchedule()" data-i18n="resetRates" style="margin-top:10px;width:100%;">Reset to Year 1 rate</button>
+                            <button class="btn-clear" onclick="resetRateSchedule()" data-i18n="resetRates" style="margin-top:10px;width:100%;">Reset all years to Year 1 rate</button>
                         </div>
                     </div>
                     <div class="net-rental-box" style="border-color:#dc2626;">
@@ -412,7 +409,6 @@ let prepaymentEntries = [];
 let entryIdCounter = 0;
 let rateSchedule = [];
 let rateAnchors = {};
-let rateScheduleOpen = true;
 let rateChart = null;
 const DEFAULT_PROPERTY_VALUE = 500;
 const translations = {
@@ -985,11 +981,6 @@ function resetRateSchedule() {
     recalculateRateSchedule();
     renderRateSchedule();
     runSimulation();
-}
-function toggleRateSchedule() {
-    rateScheduleOpen = !rateScheduleOpen;
-    document.getElementById('rate-schedule-wrapper').style.display = rateScheduleOpen ? 'block' : 'none';
-    document.getElementById('rate-schedule-arrow').style.transform = rateScheduleOpen ? 'rotate(180deg)' : '';
 }
 function isVariableRate() {
     if (rateSchedule.length === 0) return false;
