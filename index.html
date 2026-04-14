@@ -247,28 +247,23 @@
                         <p class="hint" data-i18n="downPaymentMonthsHint">Time to pay down payment in installments (0% interest)</p>
                     </div>
                     <div class="input-group">
-                        <label data-i18n="mortgageRate">Mortgage Interest Rate (% annual)</label>
-                        <input type="number" id="mortgage-rate" placeholder="e.g., 13" value="13" step="0.1">
-                        <p class="hint" data-i18n="mortgageRateHint">Current rates vary by country/bank</p>
-                    </div>
-                    <div class="input-group">
                         <label data-i18n="mortgageTerm">Mortgage Term (years)</label>
                         <input type="number" id="mortgage-term" placeholder="e.g., 20" value="20" min="1" max="30" step="1">
                     </div>
                     <div style="margin-top:15px;padding-top:15px;border-top:1px solid #e5e7eb;">
                         <div style="cursor:pointer;display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:#f0fdfa;border:1px solid #0d9488;border-radius:10px;" onclick="toggleRateSchedule()">
                             <div>
-                                <span style="font-size:0.95rem;font-weight:600;color:#0d9488;" data-i18n="rateSchedule">Yearly Rate Schedule</span>
-                                <p style="font-size:0.72rem;color:#667085;margin-top:2px;" data-i18n="rateScheduleHint">Customize the interest rate for each year of the mortgage</p>
+                                <span style="font-size:0.95rem;font-weight:600;color:#0d9488;" data-i18n="rateSchedule">Mortgage Interest Rates (% annual)</span>
+                                <p style="font-size:0.72rem;color:#667085;margin-top:2px;" data-i18n="rateScheduleHint">Set the interest rate for each year of the mortgage. Click any year to customize it.</p>
                             </div>
-                            <span id="rate-schedule-arrow" style="font-size:0.8rem;color:#0d9488;transition:transform 0.2s;flex-shrink:0;">▼</span>
+                            <span id="rate-schedule-arrow" style="font-size:0.8rem;color:#0d9488;transition:transform 0.2s;flex-shrink:0;transform:rotate(180deg);">▼</span>
                         </div>
-                        <div id="rate-schedule-wrapper" style="display:none;margin-top:12px;">
+                        <div id="rate-schedule-wrapper" style="display:block;margin-top:12px;">
                             <div style="position:relative;height:140px;margin-bottom:12px;">
                                 <canvas id="rate-chart"></canvas>
                             </div>
                             <div id="rate-schedule-entries" class="rate-schedule-grid"></div>
-                            <button class="btn-clear" onclick="resetRateSchedule()" data-i18n="resetRates" style="margin-top:10px;width:100%;">Reset to base rate</button>
+                            <button class="btn-clear" onclick="resetRateSchedule()" data-i18n="resetRates" style="margin-top:10px;width:100%;">Reset to Year 1 rate</button>
                         </div>
                     </div>
                     <div class="net-rental-box" style="border-color:#dc2626;">
@@ -417,7 +412,7 @@ let prepaymentEntries = [];
 let entryIdCounter = 0;
 let rateSchedule = [];
 let rateAnchors = {};
-let rateScheduleOpen = false;
+let rateScheduleOpen = true;
 let rateChart = null;
 const DEFAULT_PROPERTY_VALUE = 500;
 const translations = {
@@ -444,12 +439,10 @@ const translations = {
         downPaymentHint: "Typical minimum: 20-30%",
         downPaymentMonths: "Down Payment Period (months)",
         downPaymentMonthsHint: "Time to pay down payment in installments (0% interest)",
-        mortgageRate: "Mortgage Interest Rate (% annual)",
-        mortgageRateHint: "Current rates vary by country/bank",
         mortgageTerm: "Mortgage Term (years)",
-        rateSchedule: "Yearly Rate Schedule",
-        rateScheduleHint: "Customize the interest rate for each year of the mortgage",
-        resetRates: "Reset to Year 1 rate",
+        rateSchedule: "Mortgage Interest Rates (% annual)",
+        rateScheduleHint: "Set the interest rate for each year of the mortgage. Click any year to customize it.",
+        resetRates: "Reset all years to Year 1 rate",
         rateYr: "Yr",
         monthlyMortgage: "Monthly Mortgage Payment (Yr 1)",
         rentalStart: "When does rental income start?",
@@ -535,12 +528,10 @@ const translations = {
         downPaymentHint: "Mínimo típico: 20-30%",
         downPaymentMonths: "Plazo Cuota Inicial (meses)",
         downPaymentMonthsHint: "Tiempo para pagar la cuota inicial en cuotas (0% interés)",
-        mortgageRate: "Tasa de Interés Hipoteca (% anual)",
-        mortgageRateHint: "Las tasas varían según país/banco",
         mortgageTerm: "Plazo Hipoteca (años)",
-        rateSchedule: "Tasas por Año",
-        rateScheduleHint: "Personalice la tasa de interés para cada año de la hipoteca",
-        resetRates: "Restablecer a tasa del Año 1",
+        rateSchedule: "Tasa de Interés Hipoteca (% anual)",
+        rateScheduleHint: "Establezca la tasa de interés para cada año de la hipoteca. Haga clic en cualquier año para personalizarlo.",
+        resetRates: "Restablecer todos los años a la tasa del Año 1",
         rateYr: "Año",
         monthlyMortgage: "Cuota Mensual Hipoteca (Año 1)",
         rentalStart: "¿Cuándo inicia el arriendo?",
@@ -723,9 +714,9 @@ function getModelConfig(pv, appR, mRent, mExp, totalM) {
     if (paymentMethod === 'leverage') {
         config.downPaymentPct = Math.min(100, Math.max(1, parseFloat(document.getElementById('down-payment-pct').value) || 30)) / 100;
         config.downPaymentMonths = parseInt(document.getElementById('down-payment-months').value) || 24;
-        config.mortgageRate = (parseFloat(document.getElementById('mortgage-rate').value) || 13) / 100;
         config.mortgageTermYears = parseInt(document.getElementById('mortgage-term').value) || 15;
         config.rateSchedule = rateSchedule.map(r => r / 100);
+        config.mortgageRate = config.rateSchedule.length > 0 ? config.rateSchedule[0] : 0.13;
         config.rentalStart = document.getElementById('rental-start').value;
     }
     return config;
@@ -850,7 +841,7 @@ function updateManualEntriesCount() {
 function saveState() {
     const inputs = {};
     ['property-value','appreciation','rental-income','rental-growth','monthly-expenses',
-     'horizon','down-payment-pct','down-payment-months','mortgage-rate','mortgage-term',
+     'horizon','down-payment-pct','down-payment-months','mortgage-term',
      'autofill-amount','autofill-frequency'].forEach(id => {
         inputs[id] = document.getElementById(id).value;
     });
@@ -874,6 +865,10 @@ function restoreState() {
         if (state.prepayStrategy) { prepayStrategy = state.prepayStrategy; setPrepayStrategy(prepayStrategy); }
         if (state.currentLang) currentLang = state.currentLang;
         if (state.rateAnchors) rateAnchors = state.rateAnchors;
+        if (rateAnchors[0] === undefined && state.inputs && state.inputs['mortgage-rate']) {
+            const legacyRate = parseFloat(state.inputs['mortgage-rate']);
+            if (!isNaN(legacyRate)) rateAnchors[0] = legacyRate;
+        }
         if (state.prepaymentEntries) prepaymentEntries = state.prepaymentEntries;
         if (state.hasGenerated !== undefined) hasGenerated = state.hasGenerated;
         if (state.entryIdCounter !== undefined) entryIdCounter = state.entryIdCounter;
@@ -891,8 +886,7 @@ function initRateSchedule(forceReset) {
 function recalculateRateSchedule() {
     const term = rateSchedule.length;
     if (term === 0) return;
-    const baseRate = parseFloat(document.getElementById('mortgage-rate').value) || 12;
-    const anchors = [[0, rateAnchors[0] !== undefined ? rateAnchors[0] : baseRate]];
+    const anchors = [[0, rateAnchors[0] !== undefined ? rateAnchors[0] : 13]];
     Object.entries(rateAnchors).forEach(([k, v]) => {
         const idx = parseInt(k);
         if (idx > 0 && idx < term) anchors.push([idx, v]);
@@ -986,9 +980,9 @@ function updateRateEntry(idx, val) {
     runSimulation();
 }
 function resetRateSchedule() {
-    rateAnchors = {};
-    const baseRate = parseFloat(document.getElementById('mortgage-rate').value) || 13;
-    rateSchedule.fill(baseRate);
+    const year1Rate = rateSchedule.length > 0 ? rateSchedule[0] : 13;
+    rateAnchors = { 0: year1Rate };
+    recalculateRateSchedule();
     renderRateSchedule();
     runSimulation();
 }
@@ -1018,7 +1012,6 @@ function doSimulation() {
     clampMin('monthly-expenses', 0);
     clampMin('horizon', 1);
     clampMin('down-payment-pct', 1);
-    clampMin('mortgage-rate', 0);
     clampMin('mortgage-term', 1);
     clampMin('down-payment-months', 1);
     const pv = getPropertyValue();
@@ -1298,13 +1291,11 @@ document.addEventListener('DOMContentLoaded', () => {
     });
     document.getElementById('horizon-unit').addEventListener('change', () => { if (hasGenerated) autoFillPrepayments(); });
     const scheduleUpdate = () => { initRateSchedule(false); };
-    document.getElementById('mortgage-rate').addEventListener('change', scheduleUpdate);
-    document.getElementById('mortgage-rate').addEventListener('input', scheduleUpdate);
     document.getElementById('mortgage-term').addEventListener('change', scheduleUpdate);
     document.getElementById('mortgage-term').addEventListener('input', scheduleUpdate);
     const restored = restoreState();
-    if (!restored) { rateAnchors = { 0: 13, 8: 9 }; }
-    initRateSchedule(!restored);
+    if (rateAnchors[0] === undefined) { rateAnchors[0] = 13; }
+    initRateSchedule(false);
     renderPrepaymentEntries();
     setLanguage(currentLang);
     runSimulation();
@@ -1342,7 +1333,12 @@ function downloadPDF() {
     var p1L = crd(t.propertyDetails, row(t.propertyValue, val('property-value') + ' M') + row(t.appreciation, val('appreciation') + '%', t.appreciationHint) + row(t.rentalIncome, val('rental-income') + ' M', txt('rental-equivalent')) + row(t.monthlyExpenses, val('monthly-expenses') + ' M', txt('expenses-equivalent')) + hBox(t.netMonthlyRental, txt('net-rental-value'), '#0d9488') + row(t.horizon, val('horizon') + ' ' + huText, t.horizonHint));
     var p1R = '';
     if (isLeverage) {
-        p1R = crd(t.financingStructure, row(t.paymentMethod, t.leverage) + row(t.downPaymentPct, val('down-payment-pct') + '%', t.downPaymentHint) + row(t.downPaymentMonths, val('down-payment-months') + ' ' + t.months.toLowerCase(), t.downPaymentMonthsHint) + row(t.mortgageRate, val('mortgage-rate') + '%', t.mortgageRateHint) + row(t.mortgageTerm, val('mortgage-term') + ' ' + t.years.toLowerCase()) + hBox(t.monthlyMortgage, txt('monthly-mortgage-value'), '#dc2626') + row(t.rentalStart, rsText));
+        const rateStr = rateSchedule.length > 0
+            ? (isVariableRate()
+                ? rateSchedule[0].toFixed(1) + '% → ' + rateSchedule[rateSchedule.length - 1].toFixed(1) + '%'
+                : rateSchedule[0].toFixed(1) + '%')
+            : '--';
+        p1R = crd(t.financingStructure, row(t.paymentMethod, t.leverage) + row(t.downPaymentPct, val('down-payment-pct') + '%', t.downPaymentHint) + row(t.downPaymentMonths, val('down-payment-months') + ' ' + t.months.toLowerCase(), t.downPaymentMonthsHint) + row(t.rateSchedule, rateStr) + row(t.mortgageTerm, val('mortgage-term') + ' ' + t.years.toLowerCase()) + hBox(t.monthlyMortgage, txt('monthly-mortgage-value'), '#dc2626') + row(t.rentalStart, rsText));
     } else {
         p1R = crd(t.financingStructure, row(t.paymentMethod, t.cash));
     }
